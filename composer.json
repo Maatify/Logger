@@ -1,0 +1,53 @@
+{
+  "name": "maatify/logger",
+  "description": "maatify.dev logger, known by our team",
+  "version": "1.0.2",
+  "type": "library",
+  "keywords": [
+    "PHP",
+    "Logger",
+    "Handler"
+  ],
+  "homepage": "https://github.com/Maatify/",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Mohamed Abdulalim",
+      "email": "mohamed@maatify.dev",
+      "homepage": "https://www.maatify.com/",
+      "role": "Backend Developer"
+    },
+    {
+      "name": "Ahmed Fawzy",
+      "email": "a.fawzy@maatify.dev",
+      "homepage": "https://www.maatify.com/",
+      "role": "Frontend Developer"
+    },
+    {
+      "name": "Ahmed Abdullah",
+      "email": "a.abdullah@maatify.dev",
+      "homepage": "https://www.maatify.com/",
+      "role": "Android Developer"
+    },
+    {
+      "name": "Elmokhtar Ahmed",
+      "email": "mokhtar@maatify.dev",
+      "homepage": "https://www.maatify.com/",
+      "role": "IOS Developer"
+    }
+  ],
+  "config": {
+    "platform": {
+      "php": "8.0.0"
+    }
+  },
+  "require": {
+    "ext-json": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Maatify\\Logger\\": "logger/",
+      "Maatify\\Store\\File\\": "store/file/"
+    }
+  }
+}
