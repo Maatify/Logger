@@ -1,3 +1,8 @@
+[![Current version](https://img.shields.io/packagist/v/maatify/logger)](https://packagist.org/packages/maatify/logger)
+[![Packagist PHP Version Support](https://img.shields.io/packagist/php-v/maatify/logger)](https://packagist.org/packages/maatify/logger)
+[![Monthly Downloads](https://img.shields.io/packagist/dm/maatify/logger)](https://packagist.org/packages/maatify/logger/stats)
+[![Total Downloads](https://img.shields.io/packagist/dt/maatify/logger)](https://packagist.org/packages/maatify/logger/stats)
+
 # Logger
 
 maatify.dev logger, known by our team

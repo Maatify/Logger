@@ -1,7 +1,7 @@
 {
   "name": "maatify/logger",
   "description": "maatify.dev logger, known by our team",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "library",
   "keywords": [
     "PHP",
@@ -42,6 +42,7 @@
     }
   },
   "require": {
+    "php": ">=8.0.0",
     "ext-json": "*"
   },
   "autoload": {
