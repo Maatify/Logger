@@ -23,7 +23,7 @@ class Path
 
     private function filePaths(): string
     {
-        return \rtrim($this->path, \DIRECTORY_SEPARATOR).\DIRECTORY_SEPARATOR.'..'.\DIRECTORY_SEPARATOR.'..'.\DIRECTORY_SEPARATOR.'..'.\DIRECTORY_SEPARATOR.'..'.\DIRECTORY_SEPARATOR.'..'.\DIRECTORY_SEPARATOR;
+        return \rtrim($this->path, \DIRECTORY_SEPARATOR).\DIRECTORY_SEPARATOR.'..'.\DIRECTORY_SEPARATOR.'..'.\DIRECTORY_SEPARATOR.'..'.\DIRECTORY_SEPARATOR.'..'.\DIRECTORY_SEPARATOR;
     }
 
 }
