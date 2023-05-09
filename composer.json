@@ -1,7 +1,7 @@
 {
   "name": "maatify/logger",
   "description": "maatify.dev logger, known by our team",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "type": "library",
   "keywords": [
     "PHP",

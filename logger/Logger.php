@@ -56,11 +56,15 @@ class Logger
         if ($f) {
             @fputs(
                 $f,
-                date("Y-m-d H:i:s") . "  " . $_SERVER['REMOTE_ADDR']
+                date("Y-m-d H:i:s") . "  "
+                . $_SERVER['REMOTE_ADDR']
                 . (! empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? "  "
                                                                . $_SERVER['HTTP_X_FORWARDED_FOR'] : '') . "  "
-                . $_SERVER['HTTP_HOST'] . "  " . ($_SERVER["REQUEST_URI"] ?? '') . "  "
-                . $message . "\n"
+                . $_SERVER['HTTP_HOST'] . "  " . ($_SERVER["REQUEST_URI"] ?? '')
+                . "  "
+                . debug_backtrace()[0]['line']
+                . "  "
+                . $message
                 . PHP_EOL
             );
             @fclose($f);
