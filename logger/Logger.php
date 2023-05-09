@@ -1,10 +1,22 @@
 <?php
+
 /**
- * Created by Maatify.dev
- * User: Maatify.dev
- * Date: 2023-03-20
- * Time: 5:49 PM
+ * @copyright   ©2023 Maatify.dev
+ * @Liberary    Logger
+ * @Project     Logger
+ * @author      Mohamed Abdulalim (megyptm) <mohamed@maatify.dev>
+ * @since       2023-03-20 5:49 PM
+ * @see         https://www.maatify.dev Maatify.com
+ * @link        https://github.com/Maatify/Logger  view project on GitHub
+ * @copyright   ©2023 Maatify.dev
+ * @note        This Project using for Log into file.
+ *
+ * @note        This program is distributed in the hope that it will be useful - WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.
+ *
  */
+
 
 namespace Maatify\Logger;
 
@@ -12,8 +24,12 @@ use Maatify\Store\File\Path;
 
 class Logger
 {
-    public static function RecordLog($message, $logFile = 'admin_logs'): void
+    private static string $extension = 'log';
+    public static function RecordLog($message, string $logFile = 'admin_logs', string $extension = ''): void
     {
+        if(!empty($extension)){
+            self::$extension = $extension;
+        }
         if (is_array($message)) {
             $message = json_encode(
                 $message,
@@ -34,7 +50,7 @@ class Logger
         }
 
         $f = @fopen(
-            $target_dir . '/' . $logFile . '_' . date("Y-m-d-A", time()),
+            $target_dir . '/' . $logFile . '_' . date("Y-m-d-A", time()) . '.' . self::$extension,
             'a+'
         );
         if ($f) {
@@ -97,6 +113,6 @@ class Logger
         }
         $target_dir = $target_dir . '/' . date('m');
 
-        return $target_dir . '/' . date('d') . '/post/' . $action . '_response_' . date("Y-m-d-A", time());
+        return $target_dir . '/' . date('d') . '/post/' . $action . '_response_' . date("Y-m-d-A", time()) . '.' . self::$extension;
     }
 }

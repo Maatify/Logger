@@ -1,22 +1,24 @@
 # Logger
 
 maatify.dev logger, known by our team
+# Installation
 
-## Installation
+```shell
+composer require maatify/paystack
+```
 
-    composer require maatify/logger
-    
+# Usage
 
-#### Usage Example:
-
+#### Example :
+```PHP
     use Maatify\Logger\Logger;
     
     //$log = 'test';
     $log = ['name' => 'test', 'description' => 'Logger test'];
     
-    $log_file = 'test.log';
+    $log_file = 'test';
 
-    Logger::RecordLog(string|array $log, string $file_name);
-
+    Logger::RecordLog(string|array $log, string $file_name, string log_file_extinsion);
+```
 
 make sure there is logs folder under project main folder
