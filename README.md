@@ -7,9 +7,9 @@ maatify.dev logger, known by our team
     composer require maatify/logger
     
 
-## Usage
+#### Usage Example:
 
-    Logger::RecordLog(string|array $log, string $file_name);
+    `Logger::RecordLog(string|array $log, string $file_name);`
 
 
 make sure there is logs folder under project main folder
