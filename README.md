@@ -9,7 +9,9 @@ maatify.dev logger, known by our team
 
 #### Usage Example:
 
-    `Logger::RecordLog(string|array $log, string $file_name);`
+    use Maatify\Logger\Logger;
+
+    Logger::RecordLog(string|array $log, string $file_name);
 
 
 make sure there is logs folder under project main folder
