@@ -10,6 +10,11 @@ maatify.dev logger, known by our team
 #### Usage Example:
 
     use Maatify\Logger\Logger;
+    
+    //$log = 'test';
+    $log = ['name' => 'test', 'description' => 'Logger test'];
+    
+    $log_file = 'test';
 
     Logger::RecordLog(string|array $log, string $file_name);
 
