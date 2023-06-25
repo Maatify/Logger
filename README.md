@@ -14,7 +14,7 @@ maatify.dev logger, known by our team
     //$log = 'test';
     $log = ['name' => 'test', 'description' => 'Logger test'];
     
-    $log_file = 'test';
+    $log_file = 'test.log';
 
     Logger::RecordLog(string|array $log, string $file_name);
 
