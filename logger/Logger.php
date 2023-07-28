@@ -52,7 +52,7 @@ class Logger
             'HTTP_USER_AGENT'      => $_SERVER['HTTP_USER_AGENT'] ?? '',
             'HTTP_REFERER'         => $_SERVER['HTTP_REFERER'] ?? '',
             'debug_backtrace_line' => debug_backtrace()[0]['line'] ?? '',
-            'debug_backtrace'      => debug_backtrace() ?? '',
+//            'debug_backtrace'      => debug_backtrace() ?? '',
         ];
 
         $message = json_encode(
