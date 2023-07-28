@@ -1,7 +1,7 @@
 {
   "name": "maatify/logger",
   "description": "maatify.dev logger, known by our team",
-  "version": "1.1.006",
+  "version": "1.1.007",
   "type": "library",
   "keywords": [
     "PHP",
@@ -20,6 +20,12 @@
     {
       "name": "Ahmed Fawzy",
       "email": "a.fawzy@maatify.dev",
+      "homepage": "https://www.maatify.com/",
+      "role": "Frontend Developer"
+    },
+    {
+      "name": "Mohaned Saeed Sami",
+      "email": "mohaned.saeed@maatify.dev",
       "homepage": "https://www.maatify.com/",
       "role": "Frontend Developer"
     },

@@ -17,10 +17,10 @@
  *
  */
 
-
 namespace Maatify\Logger;
 
 use Maatify\Store\File\Path;
+use Throwable;
 
 class Logger
 {
@@ -31,10 +31,25 @@ class Logger
         if (! empty($extension)) {
             self::$extension = $extension;
         }
-        if(!is_array($message)){
+//        if(!is_array($message)){
+//            $message_array['log_details'] = $message;
+//        }
+//        if (is_array($message)) {
+//            $message_array['log_details'] = $message;
+//        }
+
+        if ($message instanceof Throwable) {
+            // Extract exception details.
+            $message_array['log_details'] = [
+                'error_message' => $message->getMessage(),
+                'file'          => $message->getFile(),
+                'line'          => $message->getLine(),
+                'code'          => $message->getCode(),
+                'trace'         => $message->getTraceAsString()
+            ];
+        } elseif (!is_array($message)) {
             $message_array['log_details'] = $message;
-        }
-        if (is_array($message)) {
+        } else {
             $message_array['log_details'] = $message;
         }
 
