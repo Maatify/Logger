@@ -68,6 +68,10 @@ class Logger
                 . "  "
                 . $message
                 . PHP_EOL
+                . ($_SERVER['HTTP_USER_AGENT'] ?? '')
+                . PHP_EOL
+                . ($_SERVER['HTTP_REFERER'] ?? '')
+                . PHP_EOL
             );
             @fclose($f);
         }
