@@ -32,7 +32,7 @@ class Logger
             self::$extension = $extension;
         }
         if(!is_array($message)){
-            $message_array['log_details'] = [$message];
+            $message_array['log_details'] = $message;
         }
         if (is_array($message)) {
             $message_array['log_details'] = $message;
@@ -80,7 +80,7 @@ class Logger
         if ($f) {
             @fputs(
                 $f,
-                $message
+                $message . PHP_EOL
             );
             @fclose($f);
         }
