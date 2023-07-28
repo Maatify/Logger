@@ -31,12 +31,12 @@ class Logger
         if (! empty($extension)) {
             self::$extension = $extension;
         }
-//        if(!is_array($message)){
-//            $message_array['log_details'] = $message;
-//        }
-//        if (is_array($message)) {
-//            $message_array['log_details'] = $message;
-//        }
+        //        if(!is_array($message)){
+        //            $message_array['log_details'] = $message;
+        //        }
+        //        if (is_array($message)) {
+        //            $message_array['log_details'] = $message;
+        //        }
 
         if ($message instanceof Throwable) {
             // Extract exception details.
@@ -45,9 +45,9 @@ class Logger
                 'file'          => $message->getFile(),
                 'line'          => $message->getLine(),
                 'code'          => $message->getCode(),
-                'trace'         => $message->getTraceAsString()
+                'trace'         => $message->getTraceAsString(),
             ];
-        } elseif (!is_array($message)) {
+        } elseif (! is_array($message)) {
             $message_array['log_details'] = $message;
         } else {
             $message_array['log_details'] = $message;
@@ -66,8 +66,9 @@ class Logger
             'SERVER_PROTOCOL'      => $_SERVER['SERVER_PROTOCOL'] ?? '',
             'HTTP_USER_AGENT'      => $_SERVER['HTTP_USER_AGENT'] ?? '',
             'HTTP_REFERER'         => $_SERVER['HTTP_REFERER'] ?? '',
+            'REMOTE_ADDR'          => $_SERVER['REMOTE_ADDR'] ?? '',
             'debug_backtrace_line' => debug_backtrace()[0]['line'] ?? '',
-//            'debug_backtrace'      => debug_backtrace() ?? '',
+            //            'debug_backtrace'      => debug_backtrace() ?? '',
         ];
 
         $message = json_encode(
@@ -87,7 +88,7 @@ class Logger
                 $logFile = $folders[sizeof($folders) - 1];
             }
         }
-// A for AM and PM only
+        // A for AM and PM only
         $f = @fopen(
             $target_dir . '/' . $logFile . '_' . date("YmdH", time()) . '.' . self::$extension,
             'a+'
