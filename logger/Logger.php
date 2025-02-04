@@ -104,15 +104,15 @@ class Logger
 
     private static function creatFolderByDate(): string
     {
-        if (file_exists('logs')) {
-            $target_dir = 'logs/' . date('y');
-        } else {
+//        if (file_exists('logs')) {
+//            $target_dir = 'logs/' . date('y');
+//        } else {
             $path = (new Path())->Get() . '/logs';
             if (! file_exists($path)) {
                 self::creatFolder($path);
             }
             $target_dir = $path . '/' . date('y');
-        }
+//        }
         self::creatFolder($target_dir);
         $target_dir = $target_dir . '/' . date('m');
         self::creatFolder($target_dir);
