@@ -1,7 +1,7 @@
 {
   "name": "maatify/logger",
   "description": "maatify.dev logger, known by our team",
-  "version": "5.0.1",
+  "version": "6.0.1",
   "type": "library",
   "keywords": [
     "PHP",
@@ -43,12 +43,14 @@
     }
   ],
   "require": {
-    "ext-json": "*"
+    "ext-json": "*",
+    "psr/log": "^3.0",
+    "monolog/monolog": "^3.9"
   },
   "autoload": {
     "psr-4": {
-      "Maatify\\Logger\\": "logger/",
-      "Maatify\\Store\\File\\": "store/file/"
+      "Maatify\\Logger\\": "src/",
+      "Maatify\\Store\\File\\": "src/store/file/"
     }
   }
 }

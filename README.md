@@ -15,6 +15,7 @@ composer require maatify/paystack
 # Usage
 
 #### Example :
+
 ```PHP
     use Maatify\Logger\Logger;
     
