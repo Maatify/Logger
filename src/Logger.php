@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace Maatify\Logger;
 
+use Monolog\Handler\StreamHandler;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Throwable;
@@ -30,9 +31,9 @@ class Logger implements LoggerInterface
     {
         if (class_exists(\Monolog\Logger::class)) {
             $this->monolog = new \Monolog\Logger('maatify');
-            $handler = new \Monolog\Handler\StreamHandler(
+            $handler = new StreamHandler(
                 $this->buildFilePath('app'),
-                \Monolog\Logger::DEBUG // int level (100) → للـ handler
+                LogLevel::DEBUG // int level (100) → للـ handler
             );
             $this->monolog->pushHandler($handler);
         }
