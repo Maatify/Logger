@@ -144,7 +144,7 @@ class Logger implements LoggerInterface
     {
         $dir = sprintf(
             "%s/logs/%s/%s/%s/%s",
-            dirname(__DIR__, 2),
+            dirname(__DIR__, 4),
             date('Y'), date('m'), date('d'), date('H')
         );
         if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
@@ -161,7 +161,7 @@ class Logger implements LoggerInterface
     {
         $targetDir = sprintf(
             '%s/logs/%s/%s/%s/%s',
-            dirname(__DIR__, 2),
+            dirname(__DIR__, 4),
             date('Y'),
             date('m'),
             date('d'),
