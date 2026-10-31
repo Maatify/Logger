@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [7.0.0]
+## [7.0.0] - 2026-10-31
 
 ### Changed (behaviour change)
 - `sanitizeRequestUri()` also strips scheme, userinfo, host and port from absolute URLs and `//host/path` references (`https://user:pw@host/cb?x=1` is logged as `/cb`), and yields `''` for anything that is not an origin-form target or has an empty authority. Previously `//host/path` was logged as `/host/path`.
@@ -42,3 +42,6 @@
 - Composer scripts for every gate (`composer ci`), PHPStan level max without baseline, `CONTRIBUTING.md` mapping local commands to CI.
 - **Breaking:** `require.php` is now `>=8.4.27 <8.5.0 || >=8.5.12 <8.6.0`. Previously no PHP constraint was declared (the code already required 8.3+ typed constants).
 - `Logger::log()` now throws `Psr\Log\InvalidArgumentException` for a non-string or unknown level (previously an uncaught error from Monolog or `strtoupper`).
+
+[Unreleased]: https://github.com/Maatify/Logger/compare/v7.0.0...HEAD
+[7.0.0]: https://github.com/Maatify/Logger/releases/tag/v7.0.0

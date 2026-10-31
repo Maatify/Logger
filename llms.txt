@@ -1,6 +1,6 @@
 # Maatify Logger (maatify/logger)
 
-> PSR-3 compatible PHP logger with a Monolog backend, a static facade, a legacy entry point, redaction of secrets before writing, and a JSON file fallback. Standalone Composer package; release target 7.0.0.
+> PSR-3 compatible PHP logger with a Monolog backend, a static facade, a legacy entry point, redaction of secrets before writing, and a JSON file fallback. Standalone Composer package; published release 7.0.0 on Packagist.
 
 This file is for an AI agent that consumes the package, not one that modifies it. The supported contract is what the linked consumer documents describe. Visible in the repository does not mean supported: do not treat `src/` internals, tests, fixtures, scripts, undocumented classes or methods, or internal engineering files as a consumer contract, and do not invent a contract the documents below do not state.
 
@@ -13,6 +13,6 @@ This file is for an AI agent that consumes the package, not one that modifies it
 
 ## Release and state
 
-- [CHANGELOG.md](CHANGELOG.md): release history and the `7.0.0` target section.
+- [CHANGELOG.md](CHANGELOG.md): release history including the published `7.0.0` release.
 - [SECURITY.md](SECURITY.md): support state and private vulnerability reporting.
 - [composer.json](composer.json): the only owner of package identity, PHP and extension requirements, dependencies and autoload.
