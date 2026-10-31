@@ -33,4 +33,4 @@ Input: context containing secrets. Public call: nothing extra for the defaults; 
 
 ## Cleaning old logs
 
-`LoggerCleanupService` deletes files older than a number of days or hours. Pass the log directory explicitly (`new LoggerCleanupService('/path/to/project/logs')`); its default does not match where the logger writes. Deletion is permanent.
+`LoggerCleanupService` deletes files older than a number of days or hours. By default it cleans the same `logs/` directory the logger writes to; pass another directory with `new LoggerCleanupService('/path/to/logs')`. Deletion is permanent.

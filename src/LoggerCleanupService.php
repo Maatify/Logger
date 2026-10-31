@@ -23,7 +23,7 @@ final class LoggerCleanupService
 
     public function __construct(?string $logBasePath = null)
     {
-        $this->logBasePath = $logBasePath ?? dirname(__DIR__, 2) . '/logs';
+        $this->logBasePath = $logBasePath ?? dirname(__DIR__, 4) . '/logs';
     }
 
     /**

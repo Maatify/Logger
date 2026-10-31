@@ -20,7 +20,11 @@ final class EndToEndLoggingTest extends TestCase
         $this->root = sys_get_temp_dir() . '/maatify-logger-e2e-' . bin2hex(random_bytes(4));
         $src = getenv('LOGGER_SRC') ?: dirname(__DIR__) . '/src';
         mkdir($this->root . '/vendor/maatify/logger/src', 0775, true);
-        copy($src . '/Logger.php', $this->root . '/vendor/maatify/logger/src/Logger.php');
+        foreach (['Logger.php', 'LoggerCleanupService.php'] as $file) {
+            if (is_file($src . '/' . $file)) {
+                copy($src . '/' . $file, $this->root . '/vendor/maatify/logger/src/' . $file);
+            }
+        }
     }
 
     protected function tearDown(): void
@@ -69,5 +73,22 @@ $l->error("loop", ["data" => $loop]);
         foreach (['SECRET1', 'SECRET2', 'SECRET3', 'SECRET4', 'SECRET5', 'SECRET6', 'SECRET7', 'SECRET8'] as $secret) {
             $this->assertStringNotContainsString($secret, $content);
         }
+    }
+
+    public function testCleanupServiceDefaultTargetsTheLoggerDirectory(): void
+    {
+        $script = $this->root . '/cleanup.php';
+        file_put_contents($script, '<?php
+require ' . var_export(dirname(__DIR__) . '/vendor/autoload.php', true) . ';
+require ' . var_export($this->root . '/vendor/maatify/logger/src/Logger.php', true) . ';
+require ' . var_export($this->root . '/vendor/maatify/logger/src/LoggerCleanupService.php', true) . ';
+(new Maatify\\Logger\\Logger())->info("old entry");
+$it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(' . var_export($this->root . '/logs', true) . ', FilesystemIterator::SKIP_DOTS));
+foreach ($it as $f) { if ($f->getExtension() === "log") { touch($f->getPathname(), time() - 2 * 86400); } }
+(new Maatify\\Logger\\LoggerCleanupService())->deleteOlderThanDays(1);
+');
+        exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' 2>&1', $out, $code);
+        $this->assertSame(0, $code, implode("\n", $out));
+        $this->assertSame([], glob($this->root . '/logs/*/*/*/*/*.log') ?: [], 'old log files were not cleaned');
     }
 }

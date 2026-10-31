@@ -35,7 +35,7 @@ The constructor is private; the class holds one shared `Logger`.
 
 | Member | Contract |
 |---|---|
-| `new LoggerCleanupService(?string $logBasePath = null)` | Directory to clean. **The default is `dirname(__DIR__, 2) . '/logs'`, which inside `vendor/maatify/logger` is `vendor/maatify/logs`, not the `logs/` folder the logger writes to. Always pass the log directory explicitly.** |
+| `new LoggerCleanupService(?string $logBasePath = null)` | Directory to clean. The default is the same `logs/` directory the logger writes to (the consumer project root for `vendor/maatify/logger`). |
 | `deleteOlderThanDays(int $days): void` | Deletes files under the directory whose modification time is older than the threshold, then removes empty sub-directories. |
 | `deleteOlderThanHours(int $hours): void` | Same, with an hours threshold. |
 

@@ -5,6 +5,7 @@
 ## [7.0.0]
 
 ### Changed (behaviour change)
+- **Breaking:** `LoggerCleanupService` now defaults to the directory the logger writes to (`dirname(__DIR__, 4) . '/logs'`, the consumer project's `logs/`). Previously the default was `dirname(__DIR__, 2) . '/logs'`, which inside `vendor/` pointed at `vendor/maatify/logs` and cleaned nothing; callers relying on that default will now delete old files in the real log directory.
 - File-fallback log entries now record only the **path** of `REQUEST_URI` (no query string, no fragment).
   Signatures, tokens and one-time codes in query strings are no longer written to log files.
   Anything parsing the `server.REQUEST_URI` field will no longer see the query string.
