@@ -82,6 +82,15 @@ if (preg_match_all('/\]\(([^)#]+)\)/', $llms, $links) > 0) {
 $check('llms.txt links resolve', $badLinks === [], implode(', ', $badLinks));
 $check('llms.txt links the Package Reference, Usage Guide and examples', str_contains($llms, '(LOGGER_PACKAGE_REFERENCE.md)') && str_contains($llms, '(docs/guides/USAGE_GUIDE.md)') && str_contains($llms, '(examples/)'));
 
+// Shell scripts must keep their executable bit in the committed tree
+$nonExec = [];
+foreach (explode("\n", trim((string) shell_exec('git -C ' . escapeshellarg($root) . ' ls-files -s -- "scripts/*.sh"'))) as $line) {
+    if ($line !== '' && !str_starts_with($line, '100755')) {
+        $nonExec[] = substr($line, strrpos($line, "\t") + 1);
+    }
+}
+$check('committed shell scripts are executable', $nonExec === [], implode(', ', $nonExec));
+
 // Archive exclusions must not drop required files nor include secrets / dev artifacts
 $bad = [];
 foreach (['.env', 'vendor', 'logs', 'error_logger.log'] as $p) {
