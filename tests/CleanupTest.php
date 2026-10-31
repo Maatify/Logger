@@ -76,4 +76,41 @@ final class CleanupTest extends TestCase
 
         $this->assertFileExists($leaf . '/index.php');
     }
+
+    public function testSymlinkedFileOutsideRootIsNeverDeleted(): void
+    {
+        $outside = sys_get_temp_dir() . '/maatify-outside-' . bin2hex(random_bytes(4));
+        mkdir($outside);
+        $target = $outside . '/external-file.txt';
+        file_put_contents($target, 'keep me');
+        $this->touchOld($target);
+        symlink($target, $this->dir . '/external.log');
+
+        try {
+            (new LoggerCleanupService($this->dir))->deleteOlderThanDays(1);
+            $this->assertFileExists($target, 'file outside the log root was deleted through a symlink');
+            $this->assertSame('keep me', file_get_contents($target));
+        } finally {
+            @unlink($this->dir . '/external.log');
+            self::remove($outside);
+        }
+    }
+
+    public function testSymlinkedDirectoryOutsideRootIsNeverTouched(): void
+    {
+        $outside = sys_get_temp_dir() . '/maatify-outside-' . bin2hex(random_bytes(4));
+        mkdir($outside);
+        file_put_contents($outside . '/index.php', '<?php http_response_code(404); exit;');
+        $this->touchOld($outside . '/index.php');
+        symlink($outside, $this->dir . '/alias');
+
+        try {
+            (new LoggerCleanupService($this->dir))->deleteOlderThanDays(1);
+            $this->assertDirectoryExists($outside);
+            $this->assertFileExists($outside . '/index.php');
+        } finally {
+            @unlink($this->dir . '/alias');
+            self::remove($outside);
+        }
+    }
 }

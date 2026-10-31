@@ -39,7 +39,7 @@ The constructor is private; the class holds one shared `Logger`.
 | `deleteOlderThanDays(int $days): void` | Deletes files under the directory whose modification time is older than the threshold, then removes empty sub-directories. |
 | `deleteOlderThanHours(int $hours): void` | Same, with an hours threshold. |
 
-Files named `index.php` (the logger's access-guard file) are never deleted on age alone. A folder that holds only an old-enough guard file is removed together with it; a folder that still holds newer logs keeps its guard. A missing directory is ignored; deletion errors are suppressed. The service deletes files permanently.
+Files named `index.php` (the logger's access-guard file) are never deleted on age alone. A folder that holds only an old-enough guard file is removed together with it; a folder that still holds newer logs keeps its guard. Symbolic links inside the directory are neither followed nor deleted, so nothing outside the log directory is ever touched. A missing directory is ignored; deletion errors are suppressed. The service deletes files permanently.
 
 ### 1.4 `Maatify\Store\File\Path` (legacy helper)
 

@@ -59,10 +59,11 @@ final class LoggerCleanupService
 
         foreach ($iterator as $file) {
             /** @var \SplFileInfo $file */
-            $path = $file->getRealPath();
-            if ($path === false) {
+            // Symlinks are never followed or deleted: the target may live outside the log directory.
+            if ($file->isLink()) {
                 continue;
             }
+            $path = $file->getPathname();
             if ($file->isFile()) {
                 // The access-guard file is removed only together with its folder, never on age alone
                 if ($file->getFilename() !== self::GUARD_FILE && $file->getMTime() < $threshold) {
