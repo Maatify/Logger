@@ -18,6 +18,17 @@ use Throwable;
 class Logger implements LoggerInterface
 {
     private static string $extension = 'log';
+    private static bool $logFullRequestUri = false;
+
+    private const string REDACTED = '***REDACTED***';
+
+    /** Context keys (case-insensitive substring match) whose values are always masked. */
+    private static array $sensitiveKeys = [
+        'password', 'passwd', 'secret', 'token', 'authorization', 'api_key', 'apikey', 'sig', 'signature', 'otp', 'cookie',
+    ];
+
+    /** @var null|callable(array): array */
+    private static $redactor = null;
     private const string INTERNAL_ERROR_FILE = __DIR__ . '/../../error_logger.log';
 
     private ?\Monolog\Logger $monolog = null;
@@ -80,6 +91,11 @@ class Logger implements LoggerInterface
             $message = 'Exception log entry';
         }
 
+        $context = self::redactContext($context);
+        if (is_string($message)) {
+            $message = self::scrubString($message);
+        }
+
         if ($this->monolog) {
             // ✅ Monolog backend
             $this->monolog->log($level, $message, $context);
@@ -97,7 +113,7 @@ class Logger implements LoggerInterface
                 'server'  => [
                     'REMOTE_ADDR' => $_SERVER['REMOTE_ADDR'] ?? 'CLI',
                     'HTTP_HOST'   => $_SERVER['HTTP_HOST'] ?? '',
-                    'REQUEST_URI' => $_SERVER['REQUEST_URI'] ?? '',
+                    'REQUEST_URI' => self::sanitizeRequestUri($_SERVER['REQUEST_URI'] ?? ''),
                     'USER_AGENT'  => $_SERVER['HTTP_USER_AGENT'] ?? '',
                 ],
                 'message' => $message,
@@ -139,7 +155,119 @@ class Logger implements LoggerInterface
         }
     }
 
+    // --- Redaction ---
+
+    /**
+     * Register an extra redaction hook, run after the built-in key masking.
+     * It receives the whole context (including the 'exception' entry) and must return the array to log.
+     * Pass null to remove it. If the hook throws, the context is replaced by a redaction-failed marker.
+     */
+    public static function setRedactor(?callable $redactor): void
+    {
+        self::$redactor = $redactor;
+    }
+
+    /**
+     * Replace the list of sensitive context keys (case-insensitive substring match).
+     *
+     * @param string[] $keys
+     */
+    public static function setSensitiveKeys(array $keys): void
+    {
+        self::$sensitiveKeys = array_map('strtolower', $keys);
+    }
+
+    public static function redactContext(array $context): array
+    {
+        try {
+            $context = self::maskKeys($context);
+            if (self::$redactor !== null) {
+                $context = (self::$redactor)($context);
+            }
+            return is_array($context) ? $context : ['redaction' => 'invalid redactor result'];
+        } catch (Throwable) {
+            return ['redaction' => 'failed'];
+        }
+    }
+
+    private static function maskKeys(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if (is_string($key) && self::isSensitiveKey($key)) {
+                $data[$key] = self::REDACTED;
+            } elseif (is_array($value)) {
+                $data[$key] = self::maskKeys($value);
+            } elseif (is_string($value)) {
+                $data[$key] = self::scrubString($value);
+            }
+        }
+        return $data;
+    }
+
+    private static function isSensitiveKey(string $key): bool
+    {
+        $key = strtolower($key);
+        foreach (self::$sensitiveKeys as $needle) {
+            if ($needle !== '' && str_contains($key, $needle)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Mask "key=value" / "key: value" secrets embedded in free text (exception messages, traces, URLs).
+     */
+    private static function scrubString(string $text): string
+    {
+        $names = implode('|', array_map(static fn(string $k) => preg_quote($k, '/'), self::$sensitiveKeys));
+        if ($names === '') {
+            return $text;
+        }
+        $out = preg_replace(
+            '/((?:[\w-]*(?:' . $names . ')[\w-]*)\s*[=:]\s*)("[^"]*"|\'[^\']*\'|[^\s&,;"\')]+)/i',
+            '$1' . self::REDACTED,
+            $text
+        );
+        return $out ?? $text;
+    }
+
     // --- Helpers ---
+
+    /**
+     * Reduce a request URI to its path only (no query string, no fragment) so that
+     * signatures, tokens and one-time codes never reach the log files.
+     * Never throws; anything unusable yields ''.
+     */
+    public static function sanitizeRequestUri(mixed $uri): string
+    {
+        if (!is_string($uri) || $uri === '') {
+            return '';
+        }
+
+        if (self::$logFullRequestUri) {
+            return $uri;
+        }
+
+        // Cut at the first '?' or '#' (also covers malformed URIs parse_url rejects)
+        $path = substr($uri, 0, strcspn($uri, '?#'));
+
+        // "//host/path" would be read as an authority; collapse leading slashes to one
+        if (str_starts_with($path, '//')) {
+            $path = '/' . ltrim($path, '/');
+        }
+
+        return $path;
+    }
+
+    /**
+     * Opt-in: log the full REQUEST_URI including the query string. Off by default.
+     */
+    public static function logFullRequestUri(bool $enabled): void
+    {
+        self::$logFullRequestUri = $enabled;
+    }
+
     private function buildFilePath(string $logFile): string
     {
         $dir = sprintf(
