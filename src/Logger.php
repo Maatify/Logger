@@ -123,6 +123,17 @@ class Logger implements LoggerInterface
         if (!is_string($level)) {
             throw new \Psr\Log\InvalidArgumentException('Log level must be a string');
         }
+        $monologLevel = match (strtolower($level)) {
+            'debug'     => Level::Debug,
+            'info'      => Level::Info,
+            'notice'    => Level::Notice,
+            'warning'   => Level::Warning,
+            'error'     => Level::Error,
+            'critical'  => Level::Critical,
+            'alert'     => Level::Alert,
+            'emergency' => Level::Emergency,
+            default     => throw new \Psr\Log\InvalidArgumentException('Unknown log level: ' . $level),
+        };
 
         // Wrap behavior → message لازم يكون string
         if (is_array($message)) {
@@ -146,17 +157,6 @@ class Logger implements LoggerInterface
 
         if ($this->monolog) {
             // ✅ Monolog backend
-            $monologLevel = match (strtolower($level)) {
-                'debug'     => Level::Debug,
-                'info'      => Level::Info,
-                'notice'    => Level::Notice,
-                'warning'   => Level::Warning,
-                'error'     => Level::Error,
-                'critical'  => Level::Critical,
-                'alert'     => Level::Alert,
-                'emergency' => Level::Emergency,
-                default     => throw new \Psr\Log\InvalidArgumentException('Unknown log level: ' . $level),
-            };
             $this->monolog->log($monologLevel, $message, $context);
             return;
         }
@@ -397,12 +397,16 @@ class Logger implements LoggerInterface
         // Cut at the first '?' or '#' (also covers malformed URIs parse_url rejects)
         $path = substr($uri, 0, strcspn($uri, '?#'));
 
-        // "//host/path" would be read as an authority; collapse leading slashes to one
-        if (str_starts_with($path, '//')) {
-            $path = '/' . ltrim($path, '/');
+        // Absolute URL ("scheme://user:pw@host/path") or network-path reference ("//host/path"):
+        // drop scheme, userinfo, host and port, keep only the path.
+        if (preg_match('#^(?:[A-Za-z][A-Za-z0-9+.-]*:)?//#', $path, $m) === 1) {
+            $rest = substr($path, strlen($m[0]));
+            $slash = strpos($rest, '/');
+            $path = $slash === false ? '/' : substr($rest, $slash);
         }
 
-        return $path;
+        // Only origin-form targets ("/path") are logged; "*", "host:port" and the like yield ''
+        return str_starts_with($path, '/') ? $path : '';
     }
 
     /**
@@ -420,7 +424,7 @@ class Logger implements LoggerInterface
             dirname(__DIR__, 4),
             date('Y'), date('m'), date('d'), date('H')
         );
-        if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
+        $this->createFolder($dir);
         return $dir . '/' . $logFile . '_' . date('Y-m-d-H') . '.' . self::$extension;
     }
 

@@ -4,7 +4,7 @@
 
 Use `maatify/logger` when you want a PSR-3 logger that writes time-partitioned files and masks secrets before they are written. Requirements are in [README.md](../../README.md#requirements). It is not a log shipper, rotator or retention tool. The complete contract is [LOGGER_PACKAGE_REFERENCE.md](../../LOGGER_PACKAGE_REFERENCE.md).
 
-Logs are written under the root of the consuming project, in `logs/YYYY/MM/DD/HH/`.
+Logs are written under the root of the consuming project, in `logs/YYYY/MM/DD/HH/`. Keep that directory outside the web root, or deny access to it in your server configuration; the `index.php` guard in each folder does not stop a web server from serving a known `.log` path.
 
 ## Capability map
 

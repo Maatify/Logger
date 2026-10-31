@@ -42,12 +42,35 @@ final class RequestUriTest extends TestCase
 
     public function testDoubleSlashPrefix(): void
     {
-        $this->assertSame('/evil.com/p', Logger::sanitizeRequestUri('//evil.com/p?t=SECRET'));
+        $this->assertSame('/p', Logger::sanitizeRequestUri('//evil.com/p?t=SECRET'));
+        $this->assertSame('/p', Logger::sanitizeRequestUri('//user:pass123@evil.com/p?t=SECRET'));
     }
 
     public function testOptInKeepsFullUri(): void
     {
         Logger::logFullRequestUri(true);
         $this->assertSame('/cb?sig=1', Logger::sanitizeRequestUri('/cb?sig=1'));
+    }
+
+    public function testAbsoluteUrisDropSchemeAuthorityAndUserinfo(): void
+    {
+        $cases = [
+            'https://user:pass123@example.com/callback?sig=SECRET456' => '/callback',
+            'http://example.com:8080/a/b#frag'                        => '/a/b',
+            'HTTPS://u:p@example.com'                                 => '/',
+            'https://user:pass123@example.com?x=SECRET'               => '/',
+            'ftp://u:p@h/p'                                           => '/p',
+        ];
+        foreach ($cases as $input => $expected) {
+            $out = Logger::sanitizeRequestUri($input);
+            $this->assertSame($expected, $out, $input);
+            $this->assertStringNotContainsString('pass123', $out);
+        }
+    }
+
+    public function testNonOriginFormTargetsAreNotLogged(): void
+    {
+        $this->assertSame('', Logger::sanitizeRequestUri('user:pass123@example.com:443'));
+        $this->assertSame('', Logger::sanitizeRequestUri('*'));
     }
 }

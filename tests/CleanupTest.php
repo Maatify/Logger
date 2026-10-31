@@ -1,0 +1,79 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Maatify\Logger\Tests;
+
+use Maatify\Logger\LoggerCleanupService;
+use PHPUnit\Framework\TestCase;
+
+final class CleanupTest extends TestCase
+{
+    private string $dir;
+
+    protected function setUp(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/maatify-cleanup-' . bin2hex(random_bytes(4));
+        mkdir($this->dir . '/2025/01/01/01', 0775, true);
+    }
+
+    protected function tearDown(): void
+    {
+        self::remove($this->dir);
+    }
+
+    private static function remove(string $path): void
+    {
+        if (!is_dir($path)) {
+            return;
+        }
+        foreach (scandir($path) ?: [] as $entry) {
+            if ($entry !== '.' && $entry !== '..') {
+                is_dir($path . '/' . $entry) ? self::remove($path . '/' . $entry) : unlink($path . '/' . $entry);
+            }
+        }
+        rmdir($path);
+    }
+
+    private function touchOld(string $file): void
+    {
+        touch($file, time() - 3 * 86400);
+    }
+
+    public function testGuardFileIsKeptWhileRecentLogsRemain(): void
+    {
+        $leaf = $this->dir . '/2025/01/01/01';
+        file_put_contents($leaf . '/index.php', '<?php http_response_code(404); exit;');
+        file_put_contents($leaf . '/app_recent.log', 'recent');
+        $this->touchOld($leaf . '/index.php');
+
+        (new LoggerCleanupService($this->dir))->deleteOlderThanDays(1);
+
+        $this->assertFileExists($leaf . '/index.php');
+        $this->assertFileExists($leaf . '/app_recent.log');
+    }
+
+    public function testOldLogsAndTheirGuardAreRemovedTogether(): void
+    {
+        $leaf = $this->dir . '/2025/01/01/01';
+        file_put_contents($leaf . '/index.php', '<?php http_response_code(404); exit;');
+        file_put_contents($leaf . '/app_old.log', 'old');
+        $this->touchOld($leaf . '/app_old.log');
+        $this->touchOld($leaf . '/index.php');
+
+        (new LoggerCleanupService($this->dir))->deleteOlderThanDays(1);
+
+        $this->assertDirectoryDoesNotExist($leaf);
+        $this->assertDirectoryExists($this->dir);
+    }
+
+    public function testFreshFolderWithOnlyItsGuardIsKept(): void
+    {
+        $leaf = $this->dir . '/2025/01/01/01';
+        file_put_contents($leaf . '/index.php', '<?php http_response_code(404); exit;');
+
+        (new LoggerCleanupService($this->dir))->deleteOlderThanDays(1);
+
+        $this->assertFileExists($leaf . '/index.php');
+    }
+}

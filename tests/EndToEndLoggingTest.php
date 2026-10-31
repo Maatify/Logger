@@ -91,4 +91,42 @@ foreach ($it as $f) { if ($f->getExtension() === "log") { touch($f->getPathname(
         $this->assertSame(0, $code, implode("\n", $out));
         $this->assertSame([], glob($this->root . '/logs/*/*/*/*/*.log') ?: [], 'old log files were not cleaned');
     }
+
+    public function testMonologPathCreatesTheGuardFile(): void
+    {
+        $script = $this->root . '/guard.php';
+        file_put_contents($script, '<?php
+require ' . var_export(dirname(__DIR__) . '/vendor/autoload.php', true) . ';
+require ' . var_export($this->root . '/vendor/maatify/logger/src/Logger.php', true) . ';
+(new Maatify\\Logger\\Logger())->info("x");
+');
+        exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' 2>&1', $out, $code);
+        $this->assertSame(0, $code, implode("\n", $out));
+        $this->assertNotEmpty(glob($this->root . '/logs/*/*/*/*/index.php') ?: [], 'guard index.php missing');
+    }
+
+    public function testFallbackPathValidatesLevelAndSanitizesUri(): void
+    {
+        $script = $this->root . '/fallback.php';
+        file_put_contents($script, '<?php
+require ' . var_export(dirname(__DIR__) . '/vendor/autoload.php', true) . ';
+require ' . var_export($this->root . '/vendor/maatify/logger/src/Logger.php', true) . ';
+$_SERVER["REQUEST_URI"] = "https://user:pass123@example.com/callback?sig=SECRET9";
+$l = new Maatify\\Logger\\Logger();
+$p = new ReflectionProperty($l, "monolog");
+$p->setValue($l, null);
+try { $l->log("bogus-level", "x"); fwrite(STDERR, "unknown level accepted\n"); exit(3); } catch (Psr\\Log\\InvalidArgumentException) {}
+$l->log("info", "fallback entry");
+');
+        exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' 2>&1', $out, $code);
+        $this->assertSame(0, $code, implode("\n", $out));
+        $files = glob($this->root . '/logs/*/*/*/*/app_*.log') ?: [];
+        $this->assertNotEmpty($files, 'fallback wrote no file');
+        $content = (string) file_get_contents((string) reset($files));
+        $this->assertStringContainsString('/callback', $content);
+        foreach (['pass123', 'SECRET9', 'example.com'] as $leak) {
+            $this->assertStringNotContainsString($leak, $content);
+        }
+        $this->assertStringNotContainsString('bogus', $content);
+    }
 }

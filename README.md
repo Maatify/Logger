@@ -100,7 +100,7 @@ An overview only. The complete inventory (signatures, behavior, errors) is [LOGG
 
 ## Security and Trust Boundaries
 
-The package masks well-known secret shapes; it cannot know every application secret. Add your own keys with `Logger::setSensitiveKeys()` or a hook with `Logger::setRedactor()`. `REMOTE_ADDR` and `USER_AGENT` are written by the file fallback unconditionally; apply your own retention policy to log files. See [SECURITY.md](SECURITY.md) for reporting.
+The package masks well-known secret shapes; it cannot know every application secret. Add your own keys with `Logger::setSensitiveKeys()` or a hook with `Logger::setRedactor()`. Store logs outside the web root or deny access to them in your server configuration: the `index.php` guard in each log folder does not stop a web server from serving a known `.log` path. `REMOTE_ADDR` and `USER_AGENT` are written by the file fallback unconditionally; apply your own retention policy to log files. See [SECURITY.md](SECURITY.md) for reporting.
 
 ## Examples
 

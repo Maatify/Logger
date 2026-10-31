@@ -5,6 +5,10 @@
 ## [7.0.0]
 
 ### Changed (behaviour change)
+- `sanitizeRequestUri()` also strips scheme, userinfo, host and port from absolute URLs and `//host/path` references (`https://user:pw@host/cb?x=1` is logged as `/cb`), and yields `''` for anything that is not an origin-form target. Previously `//host/path` was logged as `/host/path`.
+- Both backends now reject an unknown log level with `Psr\Log\InvalidArgumentException`; the file fallback previously accepted any string.
+- Monolog log folders now receive the same `index.php` guard file as the fallback folders.
+- `LoggerCleanupService` no longer deletes `index.php` on age alone and removes a folder holding only an old guard file together with it.
 - **Breaking:** `LoggerCleanupService` now defaults to the directory the logger writes to (`dirname(__DIR__, 4) . '/logs'`, the consumer project's `logs/`). Previously the default was `dirname(__DIR__, 2) . '/logs'`, which inside `vendor/` pointed at `vendor/maatify/logs` and cleaned nothing; callers relying on that default will now delete old files in the real log directory.
 - File-fallback log entries now record only the **path** of `REQUEST_URI` (no query string, no fragment).
   Signatures, tokens and one-time codes in query strings are no longer written to log files.

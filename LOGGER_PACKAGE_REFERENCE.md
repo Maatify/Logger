@@ -18,7 +18,7 @@ Namespace `Maatify\Logger`. Anything not listed here is not part of the supporte
 | `static setSensitiveKeys(array $keys): void` | Replaces the list of sensitive context keys (case-insensitive substring match). |
 | `static setRedactor(?callable $redactor): void` | Registers (or with `null` removes) a hook `fn(array $context): array` run after built-in masking. |
 | `static redactContext(array $context): array` | Applies built-in masking and the hook; never throws. |
-| `static sanitizeRequestUri(mixed $uri): string` | Returns the path of a request URI without query string or fragment; `''` for missing or non-string input. |
+| `static sanitizeRequestUri(mixed $uri): string` | Returns only the path of a request URI: no query string, fragment, scheme, userinfo, host or port. `https://user:pw@host/cb?x=1` becomes `/cb`; an absolute URL without a path becomes `/`. Anything that is not an origin-form target (missing or non-string input, `*`, `host:port`) yields `''`. |
 | `static logFullRequestUri(bool $enabled): void` | Opt-in to keep the full URI in `sanitizeRequestUri()`. Default off. |
 
 ### 1.2 `LoggerService` (final, static facade)
@@ -39,7 +39,7 @@ The constructor is private; the class holds one shared `Logger`.
 | `deleteOlderThanDays(int $days): void` | Deletes files under the directory whose modification time is older than the threshold, then removes empty sub-directories. |
 | `deleteOlderThanHours(int $hours): void` | Same, with an hours threshold. |
 
-A missing directory is ignored; deletion errors are suppressed. The service deletes files permanently.
+Files named `index.php` (the logger's access-guard file) are never deleted on age alone. A folder that holds only an old-enough guard file is removed together with it; a folder that still holds newer logs keeps its guard. A missing directory is ignored; deletion errors are suppressed. The service deletes files permanently.
 
 ### 1.4 `Maatify\Store\File\Path` (legacy helper)
 
@@ -51,8 +51,9 @@ A missing directory is ignored; deletion errors are suppressed. The service dele
 An array message is logged as `'Array log entry'` with the array under `context.data`. A `Throwable` message is logged as `'Exception log entry'` with its details under `context.exception`.
 
 ### 2.2 Backends and files
+- Both backends validate the level first (see §3), then redact, then write.
 - With Monolog loadable (always, when installed through Composer), entries are written to `logs/YYYY/MM/DD/HH/app_YYYY-MM-DD-HH.log` under the consumer project root (the directory four levels above the package `src/`, i.e. the project root for `vendor/maatify/logger`). The `logFile` argument is not used for routing; it is carried in the context.
-- Only when Monolog is not loadable, the file fallback writes pretty-printed JSON entries to `logs/YYYY/MM/DD/HH/<logFile>_YYYY-MM-DD-HH.log`; a `/` in `logFile` creates sub-folders. Each created folder receives an `index.php` that answers `404`.
+- Only when Monolog is not loadable, the file fallback writes pretty-printed JSON entries to `logs/YYYY/MM/DD/HH/<logFile>_YYYY-MM-DD-HH.log`; a `/` in `logFile` creates sub-folders. Each created log folder (both backends) receives an `index.php` that answers `404`. That file does not prevent a web server from serving a known `.log` path: keep the log directory outside the web root or deny access to it in the server configuration.
 - Fallback I/O failures are written to `error_logger.log` and never thrown.
 
 ### 2.3 Fallback entry shape
@@ -73,7 +74,7 @@ Matching is by substring: a key such as `design` also contains `sig` and is mask
 
 | Condition | Result |
 |---|---|
-| `log()` with a non-string or unknown level | `Psr\Log\InvalidArgumentException` |
+| `log()` with a non-string or unknown level (both backends) | `Psr\Log\InvalidArgumentException` |
 | Redaction hook throws or returns a non-array | Context replaced by `['redaction' => 'failed']`; logging continues |
 | Fallback write or folder failure | Recorded in `error_logger.log`; no exception |
 
