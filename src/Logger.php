@@ -247,7 +247,8 @@ class Logger implements LoggerInterface
         try {
             $context = self::maskKeys($context);
             if (self::$redactor !== null) {
-                $context = (self::$redactor)($context);
+                // The hook's output is re-scanned so it cannot re-introduce sensitive data.
+                $context = self::maskKeys((self::$redactor)($context));
             }
             return $context;
         } catch (Throwable) {
@@ -287,7 +288,40 @@ class Logger implements LoggerInterface
         if ($value instanceof Throwable) {
             return self::describeThrowable($value, $depth);
         }
+        if (is_object($value)) {
+            return self::describeObject($value, $depth);
+        }
         return $value;
+    }
+
+    /**
+     * Objects are expanded into the data a formatter would serialize (JsonSerializable output, __toString,
+     * public properties) and masked, so nothing sensitive reaches a backend through an object.
+     * Value objects without secrets (dates, enums) are kept as they are.
+     */
+    private static function describeObject(object $value, int $depth): mixed
+    {
+        if ($value instanceof \DateTimeInterface || $value instanceof \UnitEnum) {
+            return $value;
+        }
+        if ($depth >= self::MAX_REDACTION_DEPTH) {
+            return ['truncated' => 'max depth reached'];
+        }
+
+        try {
+            if ($value instanceof \JsonSerializable) {
+                return self::maskValue($value->jsonSerialize(), $depth + 1);
+            }
+            if ($value instanceof \Stringable) {
+                return self::scrubString((string) $value);
+            }
+            return [
+                'class'      => $value::class,
+                'properties' => self::maskKeys(get_object_vars($value), $depth + 1),
+            ];
+        } catch (Throwable) {
+            return ['class' => $value::class, 'unserializable' => true];
+        }
     }
 
     /**

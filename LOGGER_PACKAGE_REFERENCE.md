@@ -4,7 +4,7 @@ The canonical public, runtime and behavioral contract of `maatify/logger` and th
 
 ## 1. Public Runtime API
 
-Namespace `Maatify\Logger`. Anything not listed here is not part of the supported contract.
+Namespace `Maatify\Logger`. Anything not listed here is not part of the supported contract. This section is the complete inventory of the public classes.
 
 ### 1.1 `Logger` (implements `Psr\Log\LoggerInterface`)
 
@@ -31,6 +31,20 @@ Namespace `Maatify\Logger`. Anything not listed here is not part of the supporte
 
 The constructor is private; the class holds one shared `Logger`.
 
+### 1.3 `LoggerCleanupService` (final)
+
+| Member | Contract |
+|---|---|
+| `new LoggerCleanupService(?string $logBasePath = null)` | Directory to clean. **The default is `dirname(__DIR__, 2) . '/logs'`, which inside `vendor/maatify/logger` is `vendor/maatify/logs`, not the `logs/` folder the logger writes to. Always pass the log directory explicitly.** |
+| `deleteOlderThanDays(int $days): void` | Deletes files under the directory whose modification time is older than the threshold, then removes empty sub-directories. |
+| `deleteOlderThanHours(int $hours): void` | Same, with an hours threshold. |
+
+A missing directory is ignored; deletion errors are suppressed. The service deletes files permanently.
+
+### 1.4 `Maatify\Store\File\Path` (legacy helper)
+
+`new Path(string $path = '')` and `Get(): string` return the given path (default: the directory above the package namespace folder) followed by four `..` segments and a trailing separator. It is not used by `Logger` or `LoggerService` and is kept only for existing callers; new code should not depend on it.
+
 ## 2. Behavior
 
 ### 2.1 Messages
@@ -49,8 +63,9 @@ Applied to the message and context on every call, before any write:
 1. Context keys containing a sensitive key (default: `password`, `passwd`, `secret`, `token`, `authorization`, `api_key`, `apikey`, `sig`, `signature`, `otp`, `cookie`) get the value `***REDACTED***`, recursively.
 2. Strings are scrubbed of `key=value` / `key: value` secrets for those keys and of `Bearer <token>` / `Basic <credentials>` values.
 3. `Throwable` objects anywhere in the context become arrays (`class`, `message`, `code`, `file`, `line`, `trace`, `previous`) with message and trace scrubbed.
-4. Nesting deeper than 8 levels is truncated, so circular structures are safe.
-5. The optional hook runs last. If it throws, the context becomes `['redaction' => 'failed']`.
+4. Objects are expanded into what a formatter would serialize and then masked: `JsonSerializable` output, the string of a `Stringable`, otherwise `['class' => ..., 'properties' => ...]` from public properties. `DateTimeInterface` and enum values are kept as they are. An object whose serialization throws is replaced by `['class' => ..., 'unserializable' => true]`.
+5. Nesting deeper than 8 levels is truncated, so circular structures (arrays or objects) are safe.
+6. The optional hook runs last and its output is masked again with the same rules, so a hook cannot re-introduce a sensitive key or `key=value` secret. If the hook throws or returns a non-array, the context becomes `['redaction' => 'failed']`.
 
 Matching is by substring: a key such as `design` also contains `sig` and is masked.
 
@@ -59,7 +74,7 @@ Matching is by substring: a key such as `design` also contains `sig` and is mask
 | Condition | Result |
 |---|---|
 | `log()` with a non-string or unknown level | `Psr\Log\InvalidArgumentException` |
-| Redaction hook throws or returns a non-array | Context replaced by a failure marker; logging continues |
+| Redaction hook throws or returns a non-array | Context replaced by `['redaction' => 'failed']`; logging continues |
 | Fallback write or folder failure | Recorded in `error_logger.log`; no exception |
 
 Exceptions raised by Monolog's own handlers are not caught by the package.

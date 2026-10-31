@@ -95,4 +95,71 @@ final class RedactionTest extends TestCase
         }
         $this->assertNotEmpty(Logger::redactContext($deep));
     }
+
+    public function testJsonSerializableObjectsAreMasked(): void
+    {
+        $obj = new class implements \JsonSerializable {
+            /** @return array<string, string> */
+            public function jsonSerialize(): array
+            {
+                return ['password' => 'SECRET123', 'note' => 'token=SECRET124', 'ok' => 'visible'];
+            }
+        };
+        $out = Logger::redactContext(['details' => $obj, 'nested' => ['deep' => $obj]]);
+        $json = self::json($out);
+        $this->assertStringNotContainsString('SECRET', $json);
+        $this->assertStringContainsString('visible', $json);
+    }
+
+    public function testStringableObjectsAreScrubbed(): void
+    {
+        $obj = new class implements \Stringable {
+            public function __toString(): string
+            {
+                return 'failed with token=SECRET200';
+            }
+        };
+        $out = Logger::redactContext(['s' => $obj]);
+        $this->assertIsString($out['s']);
+        $this->assertStringNotContainsString('SECRET', $out['s']);
+    }
+
+    public function testPlainObjectPublicPropertiesAreMasked(): void
+    {
+        $obj = new \stdClass();
+        $obj->password = 'SECRET300';
+        $obj->user = 'ali';
+        $obj->child = new \stdClass();
+        $obj->child->api_key = 'SECRET301';
+        $json = self::json(Logger::redactContext(['o' => $obj]));
+        $this->assertStringNotContainsString('SECRET', $json);
+        $this->assertStringContainsString('ali', $json);
+    }
+
+    public function testCircularAndThrowingObjectsNeverBreakLogging(): void
+    {
+        $a = new \stdClass();
+        $a->self = $a;
+        $a->label = 'loop';
+        $bad = new class implements \JsonSerializable {
+            public function jsonSerialize(): never
+            {
+                throw new \RuntimeException('boom token=SECRET400');
+            }
+        };
+        $badString = new class implements \Stringable {
+            public function __toString(): string
+            {
+                throw new \RuntimeException('boom');
+            }
+        };
+        $out = Logger::redactContext(['a' => $a, 'bad' => $bad, 'badString' => $badString]);
+        $this->assertStringNotContainsString('SECRET', self::json($out));
+    }
+
+    public function testRedactorOutputIsRescanned(): void
+    {
+        Logger::setRedactor(static fn(array $c): array => $c + ['password' => 'SECRET500', 'note' => 'token=SECRET501']);
+        $this->assertStringNotContainsString('SECRET', self::json(Logger::redactContext([])));
+    }
 }

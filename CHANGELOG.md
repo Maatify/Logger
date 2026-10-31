@@ -18,6 +18,7 @@
   - `Logger::setSensitiveKeys([...])` replaces the key list, `Logger::setRedactor(callable)` adds a custom hook
     that receives the full context. A throwing hook never breaks logging and never leaks the original context.
 - Behaviour change: values under the default sensitive keys now appear as `***REDACTED***` in logs.
+- Objects in the context are expanded and masked before reaching any backend (`JsonSerializable` output, `Stringable` string, public properties); a redaction hook's output is masked again. Object entries now log as `['class' => ..., 'properties' => ...]` instead of Monolog's own object rendering.
 - `Throwable` objects placed anywhere in the context are converted to a scrubbed array (class, message, code, file, line, trace, previous) before reaching Monolog.
 - `Authorization: Bearer/Basic <credentials>` values are redacted from free text.
 - Redaction is depth-limited (8 levels), so circular or very deep contexts cannot exhaust memory.

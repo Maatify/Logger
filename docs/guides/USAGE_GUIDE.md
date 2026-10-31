@@ -29,4 +29,8 @@ Input: a `Throwable` and optional extra context. Public call: `LoggerService::lo
 
 ## 4. Redaction
 
-Input: context containing secrets. Public call: nothing extra for the defaults; `Logger::setSensitiveKeys([...])` replaces the key list and `Logger::setRedactor(fn (array $c): array => ...)` adds a hook. Result: `***REDACTED***` for sensitive keys and scrubbed strings. Boundary: only known shapes are masked; add your own keys for application-specific secrets.
+Input: context containing secrets. Public call: nothing extra for the defaults; `Logger::setSensitiveKeys([...])` replaces the key list and `Logger::setRedactor(fn (array $c): array => ...)` adds a hook. Result: `***REDACTED***` for sensitive keys and scrubbed strings. Boundary: only known shapes are masked, including values reached through objects (`JsonSerializable`, `Stringable`, public properties); add your own keys for application-specific secrets. A hook's output is masked again, so it cannot re-introduce what the built-in rules mask.
+
+## Cleaning old logs
+
+`LoggerCleanupService` deletes files older than a number of days or hours. Pass the log directory explicitly (`new LoggerCleanupService('/path/to/project/logs')`); its default does not match where the logger writes. Deletion is permanent.

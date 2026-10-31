@@ -51,6 +51,10 @@ $l->error("callback https://x/cb?sig=SECRET1 failed", ["password" => "SECRET2", 
 $l->error(new RuntimeException("gateway said token=SECRET3"));
 $l->error("pay failed", ["exception" => new RuntimeException("token=SECRET4")]);
 $l->error("hdr Authorization: Bearer SECRET5");
+$l->error("obj", ["details" => new class implements JsonSerializable { public function jsonSerialize(): array { return ["password" => "SECRET6"]; } }]);
+$l->error("str", ["s" => new class implements Stringable { public function __toString(): string { return "token=SECRET7"; } }]);
+$plain = new stdClass(); $plain->password = "SECRET8";
+$l->error("plain", ["p" => $plain]);
 $loop = ["a" => 1]; $loop["self"] = &$loop;
 $l->error("loop", ["data" => $loop]);
 ');
@@ -62,7 +66,7 @@ $l->error("loop", ["data" => $loop]);
         $content = (string) file_get_contents((string) reset($files));
 
         $this->assertStringContainsString('visible', $content);
-        foreach (['SECRET1', 'SECRET2', 'SECRET3', 'SECRET4', 'SECRET5'] as $secret) {
+        foreach (['SECRET1', 'SECRET2', 'SECRET3', 'SECRET4', 'SECRET5', 'SECRET6', 'SECRET7', 'SECRET8'] as $secret) {
             $this->assertStringNotContainsString($secret, $content);
         }
     }
