@@ -8,7 +8,8 @@
   <img alt="Maatify.dev" src="https://www.maatify.dev/company-profile/maatify_logo_dark.svg">
 </picture>
 
-[![Status](https://img.shields.io/badge/Status-Release%20Preparation-blue)](CHANGELOG.md)
+[![Status](https://img.shields.io/badge/Status-Published-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-7.0.0-blue)](https://packagist.org/packages/maatify/logger)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D8.4.27-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
 [![PHPStan](https://img.shields.io/badge/PHPStan-Level%20Max-4E8CAE)](phpstan.neon)
@@ -28,7 +29,7 @@
 
 `maatify/logger` is a PSR-3 compatible logger for PHP: a Monolog-backed `Logger`, a static `LoggerService` facade, a legacy `RecordLog` entry point, redaction of secrets before anything is written, and a JSON file fallback used only when Monolog is not loadable.
 
-Release Target: `7.0.0` · Release Preparation: active · Publication State of `7.0.0` at qualification: not published.
+Published release: `7.0.0` (2026-10-31), distributed through [Packagist](https://packagist.org/packages/maatify/logger).
 
 </div>
 
@@ -56,13 +57,13 @@ Release Target: `7.0.0` · Release Preparation: active · Publication State of `
 
 ## Installation
 
-Install the exact release target:
+Install the published release:
 
 ```bash
 composer require maatify/logger:7.0.0
 ```
 
-The command resolves through Packagist only after this exact version is published; the existence of this source tree does not publish it.
+The command resolves through Packagist.
 
 ## Quick Usage
 

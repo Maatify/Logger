@@ -5,7 +5,9 @@
 
 ## Current Support State
 
-This tree is the release artifact for target `7.0.0`. It does not establish that `7.0.0` is published, and it does not define a supported release line; the supported release lines are recorded here only after a release is published and the maintainers have decided its support.
+The actively supported release line is `7.x`.
+
+Security fixes are provided in the latest release within the supported `7.x` line. Users should upgrade to the latest available `7.x` version before reporting a vulnerability. Older release lines are not supported.
 
 ## Reporting a Vulnerability
 
