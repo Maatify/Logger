@@ -74,6 +74,8 @@ jobs:
           coverage: none
       - name: Harness (two clean consumer installs)
         run: composer harness
+      - name: Examples smoke execution
+        run: composer examples
 
   workflow-lint:
     name: Workflow lint

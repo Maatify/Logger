@@ -1,171 +1,145 @@
-[![Current version](https://img.shields.io/packagist/v/maatify/logger)](https://packagist.org/packages/maatify/logger)
-[![Packagist PHP Version Support](https://img.shields.io/packagist/php-v/maatify/logger)](https://packagist.org/packages/maatify/logger)
+<div align="center">
+
+# Maatify Logger
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://www.maatify.dev/company-profile/maatify_logo_white.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://www.maatify.dev/company-profile/maatify_logo_dark.svg">
+  <img alt="Maatify.dev" src="https://www.maatify.dev/company-profile/maatify_logo_dark.svg">
+</picture>
+
+[![Status](https://img.shields.io/badge/Status-Release%20Preparation-blue)](CHANGELOG.md)
+[![PHP](https://img.shields.io/badge/PHP-%3E%3D8.4.27-8892BF)](composer.json)
+[![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
+[![PHPStan](https://img.shields.io/badge/PHPStan-Level%20Max-4E8CAE)](phpstan.neon)
+
+[![Packagist](https://img.shields.io/badge/Packagist-Distribution-blue)](https://packagist.org/packages/maatify/logger)
 [![Monthly Downloads](https://img.shields.io/packagist/dm/maatify/logger)](https://packagist.org/packages/maatify/logger/stats)
 [![Total Downloads](https://img.shields.io/packagist/dt/maatify/logger)](https://packagist.org/packages/maatify/logger/stats)
+[![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify)
+[![Install](https://img.shields.io/badge/Install-7.0.0-blue)](#installation)
 
-# 📜 Maatify Logger
+[![Usage Guide](https://img.shields.io/badge/Docs-Usage%20Guide-informational)](docs/guides/USAGE_GUIDE.md)
+[![Examples](https://img.shields.io/badge/Docs-Examples-informational)](examples/)
+[![Package Reference](https://img.shields.io/badge/Docs-Package%20Reference-informational)](LOGGER_PACKAGE_REFERENCE.md)
+[![Changelog](https://img.shields.io/badge/Docs-Changelog-informational)](CHANGELOG.md)
+[![Security](https://img.shields.io/badge/Docs-Security-informational)](SECURITY.md)
+[![Contributing](https://img.shields.io/badge/Docs-Contributing-informational)](CONTRIBUTING.md)
 
-A lightweight PSR-3 compatible Logger with **Monolog integration** (if available) and **file fallback** (date/hour folders).  
-Supports **legacy logging**, **modern PSR-3 methods**, and a **facade service** for easy usage.
+`maatify/logger` is a PSR-3 compatible logger for PHP: a Monolog-backed `Logger`, a static `LoggerService` facade, a legacy `RecordLog` entry point, redaction of secrets before anything is written, and a JSON file fallback used only when Monolog is not loadable.
 
----
+Release Target: `7.0.0` · Release Preparation: active · Publication State of `7.0.0` at qualification: not published.
 
-## ✨ Features
-
-- ✅ **PSR-3 compliant** (`LoggerInterface`, `LogLevel`).  
-- ✅ **Monolog integration** (if installed) – automatic backend.  
-- ✅ **File fallback** if Monolog is not available (organized by `year/month/day/hour`).  
-- ✅ **Structured JSON logs** (server info + message + context).  
-- ✅ **Facade service** (`LoggerService`) with static methods for quick usage.  
-- ✅ **Exception logging** via `logException()`.  
-- ✅ **Legacy support** (`RecordLog`) for old codebases.  
+</div>
 
 ---
 
-## 📦 Installation
+## Key Features
+
+- **PSR-3 logger:** `Maatify\Logger\Logger` implements `Psr\Log\LoggerInterface`.
+- **Facade and legacy entry points:** static `LoggerService` methods and `Logger::RecordLog()` for existing code.
+- **Secrets are redacted before they are written:** sensitive context keys, `key=value` secrets, `Authorization: Bearer/Basic` values and `Throwable` messages and traces are masked. The list and a custom hook are configurable.
+- **Request path only:** the file fallback records `REQUEST_URI` without its query string or fragment; the full URI is an explicit opt-in.
+- **Time-partitioned files:** `logs/YYYY/MM/DD/HH/` with a `404` `index.php` guard in each created folder.
+- **Never throws on I/O failure in the fallback:** write problems go to an internal error file instead.
+
+## Requirements
+
+[composer.json](composer.json) is the source of truth for requirements and dependencies; this table reflects it.
+
+| Requirement | Constraint |
+|---|---|
+| PHP | `>=8.4.27 <8.5.0 \|\| >=8.5.12 <8.6.0` |
+| Extensions | `ext-json` |
+| `monolog/monolog` | `^3.9` |
+| `psr/log` | `^3.0` |
+
+## Installation
+
+Install the exact release target:
 
 ```bash
-composer require maatify/logger
-````
-
-If you also want Monolog support:
-
-```bash
-composer require monolog/monolog
+composer require maatify/logger:7.0.0
 ```
 
----
+The command resolves through Packagist only after this exact version is published; the existence of this source tree does not publish it.
 
-## 🔧 Usage
-
-### 1. Using the Facade (`LoggerService`)
+## Quick Usage
 
 ```php
 use Maatify\Logger\LoggerService;
 
-// Info log
-LoggerService::info("User login successful", "auth/logs");
+LoggerService::info('User login successful', 'auth/logs');
 
-// Error log with Exception
 try {
-    throw new RuntimeException("DB connection failed");
+    throw new RuntimeException('DB connection failed');
 } catch (Throwable $e) {
-    LoggerService::logException($e, "system/errors");
-}
-
-// Debug log with context
-LoggerService::debug("Payment request", "payments/debug", [
-    'userId' => 123,
-    'amount' => 99.99,
-]);
-```
-
----
-
-### 2. Generic Logger Method
-
-```php
-use Maatify\Logger\LoggerService;
-use Psr\Log\LogLevel;
-
-LoggerService::log(LogLevel::CRITICAL, "Out of memory!", "system/critical");
-```
-
----
-
-### 3. Exception Logging with Extra Context
-
-```php
-try {
-    throw new RuntimeException("Unauthorized access");
-} catch (Throwable $e) {
-    LoggerService::logException(
-        $e,
-        "security/errors",
-        LogLevel::CRITICAL,
-        [
-            'userId'    => 42,
-            'requestId' => 'abc123',
-            'ip'        => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-        ]
-    );
+    LoggerService::logException($e, 'system/errors', context: ['requestId' => 'abc123']);
 }
 ```
 
----
+Complete, runnable examples: [examples/](examples/). Walkthroughs: [docs/guides/USAGE_GUIDE.md](docs/guides/USAGE_GUIDE.md).
 
-### 4. Legacy Support
+## Public Runtime API
 
-For old codebases still using `RecordLog`:
+An overview only. The complete inventory (signatures, behavior, errors) is [LOGGER_PACKAGE_REFERENCE.md](LOGGER_PACKAGE_REFERENCE.md).
 
-```php
-use Maatify\Logger\Logger;
+| Area | Types |
+|---|---|
+| PSR-3 logger | `Logger` (`emergency()` … `debug()`, `log()`) |
+| Facade | `LoggerService` (static `log()`, level methods, `logException()`) |
+| Legacy | `Logger::RecordLog()`, `Logger::LEVEL_*` constants |
+| Redaction | `Logger::setSensitiveKeys()`, `Logger::setRedactor()`, `Logger::redactContext()` |
+| Request URI policy | `Logger::sanitizeRequestUri()`, `Logger::logFullRequestUri()` |
 
-Logger::RecordLog("Old style log", Logger::LEVEL_INFO, "legacy/system");
+## Critical Runtime Behavior
+
+- **Monolog is the active backend:** because `monolog/monolog` is a required dependency, entries go to `logs/YYYY/MM/DD/HH/app_YYYY-MM-DD-HH.log`. The per-call log file name only routes files in the file fallback; with Monolog it is carried in the context.
+- **Redaction runs first** on every call, in both backends, and never throws.
+- **Invalid level:** a non-string or unknown level throws `Psr\Log\InvalidArgumentException`.
+
+## Security and Trust Boundaries
+
+The package masks well-known secret shapes; it cannot know every application secret. Add your own keys with `Logger::setSensitiveKeys()` or a hook with `Logger::setRedactor()`. `REMOTE_ADDR` and `USER_AGENT` are written by the file fallback unconditionally; apply your own retention policy to log files. See [SECURITY.md](SECURITY.md) for reporting.
+
+## Examples
+
+Maintained, smoke-executed examples using only the Public Runtime API: [examples/](examples/).
+
+## Documentation
+
+- [Usage Guide](docs/guides/USAGE_GUIDE.md)
+- [Package Reference](LOGGER_PACKAGE_REFERENCE.md)
+- [Changelog](CHANGELOG.md)
+- [Security Policy](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+
+## Quality Status
+
+PHPStan level max with no baseline, a PHPUnit suite, a Consumer Verification Harness (clean consumer install, production autoload) and smoke-executed examples run in [CI](.github/workflows/ci.yml); the `CI gate` job aggregates them.
+
+## Development and Testing
+
+```bash
+composer ci
 ```
 
----
+Each gate and its CI mapping are listed in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 📂 Log Storage Structure
+## License
 
-When using fallback file logging (without Monolog), logs are stored under:
+Proprietary. See [LICENSE](LICENSE).
 
-```
-logs/YYYY/MM/DD/HH/<logFile>_YYYY-MM-DD-HH.log
-```
+## 👤 Author
 
-Example:
-
-```
-logs/2025/09/04/16/system_errors_2025-09-04-16.log
-```
-
-Each log entry is JSON formatted:
-
-```json
-{
-    "level": "ERROR",
-    "time": "2025-09-04 16:15:00",
-    "server": {
-        "REMOTE_ADDR": "127.0.0.1",
-        "HTTP_HOST": "example.com",
-        "REQUEST_URI": "/login",
-        "USER_AGENT": "Mozilla/5.0"
-    },
-    "message": "Exception captured",
-    "context": {
-        "userId": 42,
-        "exception": {
-            "message": "Unauthorized access",
-            "file": "/var/www/app/login.php",
-            "line": 88,
-            "code": 0,
-            "trace": "stack trace..."
-        }
-    }
-}
-```
-
----
-
-## ⚙️ Configuration
-
-* Default log path: `./logs`
-* Default file extension: `.log`
-* Default fallback log level: `info`
-* Uses Monolog automatically if installed.
+Engineered by **Mohamed Abdulalim** ([@megyptm](https://github.com/megyptm))<br>
+Backend Lead & Technical Architect<br>
+[https://www.maatify.dev](https://www.maatify.dev)
 
 ---
 
-## 🛡️ License
+<div align="center">
 
-This project is proprietary ©2025 [Maatify.dev](https://maatify.dev)
+[Built with ❤️ by Maatify.dev — Unified Ecosystem for Modern PHP Libraries](https://www.maatify.dev)
 
----
-
-## ✍️ Author
-
-**Mohamed Abdulalim**
-[maatify.dev](https://maatify.dev) – [GitHub](https://github.com/Maatify)
-
-
+</div>

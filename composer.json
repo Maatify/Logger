@@ -1,13 +1,15 @@
 {
   "name": "maatify/logger",
-  "description": "maatify.dev logger, known by our team",
+  "description": "PSR-3 compatible PHP logger with a Monolog backend, secret redaction and a JSON file fallback",
   "type": "library",
   "keywords": [
-    "PHP",
-    "Logger",
-    "Handler"
+    "php",
+    "maatify",
+    "logger",
+    "psr-3",
+    "monolog"
   ],
-  "homepage": "https://github.com/Maatify/",
+  "homepage": "https://github.com/Maatify/Logger",
   "license": "proprietary",
   "authors": [
     {
@@ -85,9 +87,11 @@
       "@analyse",
       "@test",
       "@harness",
+      "@examples",
       "@audit:deps"
     ],
     "harness": "scripts/consumer-harness.sh",
-    "release:verify": "php scripts/verify-release-artifact.php"
+    "release:verify": "php scripts/verify-release-artifact.php",
+    "examples": "scripts/run-examples.sh"
   }
 }

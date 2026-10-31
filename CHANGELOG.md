@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [7.0.0]
+
 ### Changed (behaviour change)
 - File-fallback log entries now record only the **path** of `REQUEST_URI` (no query string, no fragment).
   Signatures, tokens and one-time codes in query strings are no longer written to log files.
@@ -22,6 +24,11 @@
 
 ### Removed
 - The `version` field from `composer.json`; releases are identified by VCS tags.
+
+### Documentation
+- README rewritten to the Maatify presentation standard; added `LOGGER_PACKAGE_REFERENCE.md`, `docs/guides/USAGE_GUIDE.md`, `examples/`, `llms.txt`, `SECURITY.md`, `CODE_OF_CONDUCT.md` and `LICENSE` (proprietary, unchanged).
+- Documented that with Monolog (the required backend) every entry goes to the `app_*.log` file; the per-call log file name routes files only in the file fallback.
+- `composer.json` metadata: description, keywords and homepage now describe this package.
 
 ### CI and tooling
 - GitHub Actions workflow (PHP 8.4/8.5 latest dependencies, PHP 8.4 lowest dependencies, workflow lint, stable `CI gate` job); actions pinned to commit SHAs, `contents: read` only.

@@ -7,7 +7,7 @@ $root = dirname(__DIR__);
 $failed = 0;
 $count = 0;
 
-foreach (['src', 'tests', 'scripts'] as $dir) {
+foreach (['src', 'tests', 'scripts', 'examples'] as $dir) {
     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/' . $dir, FilesystemIterator::SKIP_DOTS));
     foreach ($it as $file) {
         if ($file->getExtension() !== 'php') {

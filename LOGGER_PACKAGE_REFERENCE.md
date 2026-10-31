@@ -1,0 +1,69 @@
+# Maatify Logger — Package Reference
+
+The canonical public, runtime and behavioral contract of `maatify/logger` and the complete Public Runtime API inventory. [README.md](README.md) gives the overview; [docs/guides/USAGE_GUIDE.md](docs/guides/USAGE_GUIDE.md) gives walkthroughs. Package identity, PHP and dependency constraints are owned by [composer.json](composer.json).
+
+## 1. Public Runtime API
+
+Namespace `Maatify\Logger`. Anything not listed here is not part of the supported contract.
+
+### 1.1 `Logger` (implements `Psr\Log\LoggerInterface`)
+
+| Member | Contract |
+|---|---|
+| `new Logger()` | Creates the Monolog backend (channel `maatify`, one stream handler) when `Monolog\Logger` is loadable. |
+| `emergency/alert/critical/error/warning/notice/info/debug($message, array $context = [])` | PSR-3 level methods; delegate to `log()`. |
+| `log($level, $message, array $context = []): void` | Core call. `$level` must be a PSR-3 level name (case-insensitive); `$message` may be a string, `Stringable`, array or `Throwable`. |
+| `static RecordLog(string\|array\|Throwable $message, string $level = 'info', string $logFile = 'app'): void` | Legacy entry point; creates a `Logger` and logs with `['logFile' => $logFile]`. |
+| `LEVEL_INFO`, `LEVEL_ERROR`, `LEVEL_DEBUG` | Legacy level constants (PSR-3 level names). |
+| `static setSensitiveKeys(array $keys): void` | Replaces the list of sensitive context keys (case-insensitive substring match). |
+| `static setRedactor(?callable $redactor): void` | Registers (or with `null` removes) a hook `fn(array $context): array` run after built-in masking. |
+| `static redactContext(array $context): array` | Applies built-in masking and the hook; never throws. |
+| `static sanitizeRequestUri(mixed $uri): string` | Returns the path of a request URI without query string or fragment; `''` for missing or non-string input. |
+| `static logFullRequestUri(bool $enabled): void` | Opt-in to keep the full URI in `sanitizeRequestUri()`. Default off. |
+
+### 1.2 `LoggerService` (final, static facade)
+
+| Member | Contract |
+|---|---|
+| `log(string $level, string\|array\|Throwable $message, string $logFile = 'app')` | Generic call. |
+| `emergency/alert/critical/error/warning/notice/info/debug(string\|array\|Throwable $message, string $logFile = 'app')` | Level wrappers. |
+| `logException(Throwable $e, string $logFile = 'exceptions', string $level = 'error', array $context = [])` | Logs `'Exception captured'` with the exception details and the extra context. |
+
+The constructor is private; the class holds one shared `Logger`.
+
+## 2. Behavior
+
+### 2.1 Messages
+An array message is logged as `'Array log entry'` with the array under `context.data`. A `Throwable` message is logged as `'Exception log entry'` with its details under `context.exception`.
+
+### 2.2 Backends and files
+- With Monolog loadable (always, when installed through Composer), entries are written to `logs/YYYY/MM/DD/HH/app_YYYY-MM-DD-HH.log` under the consumer project root (the directory four levels above the package `src/`, i.e. the project root for `vendor/maatify/logger`). The `logFile` argument is not used for routing; it is carried in the context.
+- Only when Monolog is not loadable, the file fallback writes pretty-printed JSON entries to `logs/YYYY/MM/DD/HH/<logFile>_YYYY-MM-DD-HH.log`; a `/` in `logFile` creates sub-folders. Each created folder receives an `index.php` that answers `404`.
+- Fallback I/O failures are written to `error_logger.log` and never thrown.
+
+### 2.3 Fallback entry shape
+`level`, `time`, `server` (`REMOTE_ADDR` or `CLI`, `HTTP_HOST`, `REQUEST_URI` path only, `USER_AGENT`), `message`, `context`.
+
+### 2.4 Redaction (both backends)
+Applied to the message and context on every call, before any write:
+1. Context keys containing a sensitive key (default: `password`, `passwd`, `secret`, `token`, `authorization`, `api_key`, `apikey`, `sig`, `signature`, `otp`, `cookie`) get the value `***REDACTED***`, recursively.
+2. Strings are scrubbed of `key=value` / `key: value` secrets for those keys and of `Bearer <token>` / `Basic <credentials>` values.
+3. `Throwable` objects anywhere in the context become arrays (`class`, `message`, `code`, `file`, `line`, `trace`, `previous`) with message and trace scrubbed.
+4. Nesting deeper than 8 levels is truncated, so circular structures are safe.
+5. The optional hook runs last. If it throws, the context becomes `['redaction' => 'failed']`.
+
+Matching is by substring: a key such as `design` also contains `sig` and is masked.
+
+## 3. Errors
+
+| Condition | Result |
+|---|---|
+| `log()` with a non-string or unknown level | `Psr\Log\InvalidArgumentException` |
+| Redaction hook throws or returns a non-array | Context replaced by a failure marker; logging continues |
+| Fallback write or folder failure | Recorded in `error_logger.log`; no exception |
+
+Exceptions raised by Monolog's own handlers are not caught by the package.
+
+## 4. Boundaries and non-goals
+
+No log rotation, retention, shipping or sampling; no per-call routing with Monolog; no guarantee that arbitrary application secrets are recognized (configure sensitive keys or a hook).

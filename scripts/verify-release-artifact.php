@@ -41,7 +41,7 @@ $check('composer.json package name is maatify/logger', ($composer['name'] ?? '')
 $check('composer.lock is not distributed', !is_file("$tmp/composer.lock"));
 
 // Required release-facing files (LIBRARY_PRESENTATION_STANDARD §6)
-foreach (['README.md', 'CHANGELOG.md', 'SECURITY.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md', 'LICENSE', 'composer.json', 'llms.txt', 'docs/guides/USAGE_GUIDE.md'] as $f) {
+foreach (['README.md', 'LOGGER_PACKAGE_REFERENCE.md', 'CHANGELOG.md', 'SECURITY.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md', 'LICENSE', 'composer.json', 'llms.txt', 'docs/guides/USAGE_GUIDE.md'] as $f) {
     $check("required file present: $f", is_file("$tmp/$f"));
 }
 $check('examples/ present and non-empty', is_dir("$tmp/examples") && (glob("$tmp/examples/*") ?: []) !== []);
@@ -56,11 +56,31 @@ $check('[Unreleased] holds no target-allocated changes', $unreleased === '', $un
 
 // README identity / install target
 $readme = $read('README.md');
-$check('README names the exact install target', str_contains($readme, $target));
+$check('README shows the exact install command', str_contains($readme, 'composer require maatify/logger:' . $target));
+$check('README ends with the canonical Maatify footer', str_ends_with(rtrim($readme), "</div>") && str_contains($readme, '[Built with ❤️ by Maatify.dev — Unified Ecosystem for Modern PHP Libraries](https://www.maatify.dev)'));
+$check('README has the canonical Author block', str_contains($readme, 'Engineered by **Mohamed Abdulalim** ([@megyptm](https://github.com/megyptm))<br>'));
+$check('README has a single H1 inside the header block', preg_match_all('/^# /m', $readme) === 1);
 
 // SECURITY.md identity badges
 $security = $read('SECURITY.md');
 $check('SECURITY.md has repository + ecosystem identity badges', str_contains($security, 'github.com/Maatify/Logger') && str_contains($security, 'https://github.com/Maatify)'));
+
+$check('SECURITY.md identifies the exact target', str_contains($security, $target));
+
+// llms.txt structure and links (LIBRARY_PRESENTATION_STANDARD §10.3)
+$llms = $read('llms.txt');
+$check('llms.txt has exactly one H1', preg_match_all('/^# /m', $llms) === 1);
+$check('llms.txt has a blockquote summary', preg_match('/^> .+/m', $llms) === 1);
+$badLinks = [];
+if (preg_match_all('/\]\(([^)#]+)\)/', $llms, $links) > 0) {
+    foreach ($links[1] as $link) {
+        if (!preg_match('#^https?://#', $link) && !file_exists("$tmp/" . rtrim($link, '/'))) {
+            $badLinks[] = $link;
+        }
+    }
+}
+$check('llms.txt links resolve', $badLinks === [], implode(', ', $badLinks));
+$check('llms.txt links the Package Reference, Usage Guide and examples', str_contains($llms, '(LOGGER_PACKAGE_REFERENCE.md)') && str_contains($llms, '(docs/guides/USAGE_GUIDE.md)') && str_contains($llms, '(examples/)'));
 
 // Archive exclusions must not drop required files nor include secrets / dev artifacts
 $bad = [];
