@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: PHP ${{ matrix.php }} (${{ matrix.deps }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { php: '8.4', deps: 'latest' }
+          - { php: '8.5', deps: 'latest' }
+          - { php: '8.4', deps: 'lowest' }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+      - name: Validate composer.json
+        run: composer validate --strict
+      - name: Resolve dependencies
+        run: |
+          if [ "${{ matrix.deps }}" = "lowest" ]; then
+            composer update --prefer-lowest --prefer-stable --no-interaction --prefer-dist --no-progress
+          else
+            composer update --no-interaction --prefer-dist --no-progress
+          fi
+      - name: Check platform requirements
+        run: composer check-platform-reqs
+      - name: PHP security patch floors
+        run: composer check:php-floors
+      - name: PHP syntax
+        run: composer lint:php
+      - name: Whitespace
+        run: composer lint:whitespace
+      - name: PHPStan
+        run: composer analyse
+      - name: Tests
+        run: composer test
+      - name: Composer audit
+        run: composer audit:deps
+
+  workflow-lint:
+    name: Workflow lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: scripts/lint-workflows.sh
+
+  gate:
+    name: CI gate
+    if: always()
+    needs: [verify, workflow-lint]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every upstream job to succeed
+        run: |
+          echo "verify=${{ needs.verify.result }} workflow-lint=${{ needs.workflow-lint.result }}"
+          [ "${{ needs.verify.result }}" = "success" ] && [ "${{ needs.workflow-lint.result }}" = "success" ]

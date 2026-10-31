@@ -22,3 +22,9 @@
 
 ### Removed
 - The `version` field from `composer.json`; releases are identified by VCS tags.
+
+### CI and tooling
+- GitHub Actions workflow (PHP 8.4/8.5 latest dependencies, PHP 8.4 lowest dependencies, workflow lint, stable `CI gate` job); actions pinned to commit SHAs, `contents: read` only.
+- Composer scripts for every gate (`composer ci`), PHPStan level max without baseline, `CONTRIBUTING.md` mapping local commands to CI.
+- **Breaking:** `require.php` is now `>=8.4.27 <8.5.0 || >=8.5.12 <8.6.0`. Previously no PHP constraint was declared (the code already required 8.3+ typed constants).
+- `Logger::log()` now throws `Psr\Log\InvalidArgumentException` for a non-string or unknown level (previously an uncaught error from Monolog or `strtoupper`).

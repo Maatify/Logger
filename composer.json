@@ -42,11 +42,14 @@
     }
   ],
   "require": {
+    "php": ">=8.4.27 <8.5.0 || >=8.5.12 <8.6.0",
     "ext-json": "*",
-    "psr/log": "^3.0",
-    "monolog/monolog": "^3.9"
+    "monolog/monolog": "^3.9",
+    "psr/log": "^3.0"
   },
   "require-dev": {
+    "composer/semver": "^3.4",
+    "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^11.0"
   },
   "autoload": {
@@ -64,6 +67,24 @@
     "sort-packages": true
   },
   "scripts": {
-    "test": "phpunit tests"
+    "validate:strict": "composer validate --strict",
+    "check:platform": "composer check-platform-reqs",
+    "check:php-floors": "php scripts/check-php-floors.php",
+    "lint:php": "php scripts/lint-php.php",
+    "lint:whitespace": "php scripts/check-whitespace.php",
+    "lint:workflows": "scripts/lint-workflows.sh",
+    "analyse": "phpstan analyse --no-progress --memory-limit=512M",
+    "audit:deps": "composer audit --no-interaction --abandoned=fail",
+    "test": "phpunit tests",
+    "ci": [
+      "@validate:strict",
+      "@check:platform",
+      "@check:php-floors",
+      "@lint:php",
+      "@lint:whitespace",
+      "@analyse",
+      "@test",
+      "@audit:deps"
+    ]
   }
 }

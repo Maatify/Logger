@@ -9,6 +9,12 @@ use PHPUnit\Framework\TestCase;
 
 final class RedactionTest extends TestCase
 {
+    /** @param array<array-key, mixed> $data */
+    private static function json(array $data): string
+    {
+        return json_encode($data, JSON_THROW_ON_ERROR);
+    }
+
     protected function tearDown(): void
     {
         Logger::setRedactor(null);
@@ -19,8 +25,8 @@ final class RedactionTest extends TestCase
     {
         $out = Logger::redactContext(['user' => 'a', 'Password' => 'P1', 'nested' => ['api_token' => 'T1']]);
         $this->assertSame('a', $out['user']);
-        $this->assertStringNotContainsString('P1', json_encode($out));
-        $this->assertStringNotContainsString('T1', json_encode($out));
+        $this->assertStringNotContainsString('P1', self::json($out));
+        $this->assertStringNotContainsString('T1', self::json($out));
     }
 
     public function testSecretsInExceptionTextAreScrubbed(): void
@@ -29,7 +35,7 @@ final class RedactionTest extends TestCase
             'message' => 'GET https://x/cb?sig=SECRET&ok=1 failed',
             'trace'   => '#0 call(token=SECRET2)',
         ]]);
-        $json = json_encode($out);
+        $json = self::json($out);
         $this->assertStringNotContainsString('SECRET', $json);
         $this->assertStringContainsString('ok=1', $json);
     }
@@ -51,7 +57,7 @@ final class RedactionTest extends TestCase
     {
         Logger::setSensitiveKeys(['iban']);
         $out = Logger::redactContext(['my_iban' => 'EG123', 'password' => 'visible']);
-        $this->assertStringNotContainsString('EG123', json_encode($out));
+        $this->assertStringNotContainsString('EG123', self::json($out));
         $this->assertSame('visible', $out['password']);
     }
 
@@ -59,9 +65,10 @@ final class RedactionTest extends TestCase
     {
         $e = new \RuntimeException('token=SECRET123', 5, new \LogicException('password=SECRET9'));
         $out = Logger::redactContext(['exception' => $e, 'nested' => ['deep' => $e]]);
-        $json = json_encode($out);
+        $json = self::json($out);
         $this->assertStringNotContainsString('SECRET', $json);
         $this->assertStringContainsString('RuntimeException', $json);
+        $this->assertIsArray($out['exception']);
         $this->assertSame('RuntimeException', $out['exception']['class']);
     }
 
@@ -69,8 +76,8 @@ final class RedactionTest extends TestCase
     {
         foreach (['Authorization: Bearer eyJ-SECRET-TOKEN', 'authorization=Basic dXNlcjpTRUNSRVQ=', 'sent header Bearer abc.DEF-SECRET_1 ok'] as $text) {
             $out = Logger::redactContext(['m' => $text, 'exception' => ['message' => $text]]);
-            $this->assertStringNotContainsString('SECRET', json_encode($out), $text);
-            $this->assertStringNotContainsString('dXNlcjpTRUNSRVQ', json_encode($out), $text);
+            $this->assertStringNotContainsString('SECRET', self::json($out), $text);
+            $this->assertStringNotContainsString('dXNlcjpTRUNSRVQ', self::json($out), $text);
         }
     }
 
@@ -79,12 +86,13 @@ final class RedactionTest extends TestCase
         $a = ['k' => 'v'];
         $a['self'] = &$a;
         $out = Logger::redactContext(['loop' => $a]);
+        $this->assertIsArray($out['loop']);
         $this->assertSame('v', $out['loop']['k']);
 
         $deep = ['x' => 'end'];
         for ($i = 0; $i < 500; $i++) {
             $deep = ['n' => $deep];
         }
-        $this->assertIsArray(Logger::redactContext($deep));
+        $this->assertNotEmpty(Logger::redactContext($deep));
     }
 }

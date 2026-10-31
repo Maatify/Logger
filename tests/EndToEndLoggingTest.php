@@ -25,14 +25,19 @@ final class EndToEndLoggingTest extends TestCase
 
     protected function tearDown(): void
     {
-        $it = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->root, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST
-        );
-        foreach ($it as $f) {
-            $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
+        self::removeTree($this->root);
+    }
+
+    private static function removeTree(string $path): void
+    {
+        foreach (scandir($path) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+            $full = $path . '/' . $entry;
+            is_dir($full) ? self::removeTree($full) : unlink($full);
         }
-        rmdir($this->root);
+        rmdir($path);
     }
 
     public function testSecretsNeverReachTheLogFile(): void
@@ -52,9 +57,9 @@ $l->error("loop", ["data" => $loop]);
         exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' 2>&1', $out, $code);
         $this->assertSame(0, $code, implode("\n", $out));
 
-        $files = glob($this->root . '/logs/*/*/*/*/app_*.log');
+        $files = glob($this->root . '/logs/*/*/*/*/app_*.log') ?: [];
         $this->assertNotEmpty($files, 'no log file written');
-        $content = (string) file_get_contents($files[0]);
+        $content = (string) file_get_contents((string) reset($files));
 
         $this->assertStringContainsString('visible', $content);
         foreach (['SECRET1', 'SECRET2', 'SECRET3', 'SECRET4', 'SECRET5'] as $secret) {

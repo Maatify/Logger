@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace Maatify\Logger;
 
 use Monolog\Handler\StreamHandler;
+use Monolog\Level;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Throwable;
@@ -23,12 +24,16 @@ class Logger implements LoggerInterface
     private const string REDACTED = '***REDACTED***';
     private const int MAX_REDACTION_DEPTH = 8;
 
-    /** Context keys (case-insensitive substring match) whose values are always masked. */
+    /**
+     * Context keys (case-insensitive substring match) whose values are always masked.
+     *
+     * @var list<string>
+     */
     private static array $sensitiveKeys = [
         'password', 'passwd', 'secret', 'token', 'authorization', 'api_key', 'apikey', 'sig', 'signature', 'otp', 'cookie',
     ];
 
-    /** @var null|callable(array): array */
+    /** @var null|callable(array<array-key, mixed>): array<array-key, mixed> */
     private static $redactor = null;
     private const string INTERNAL_ERROR_FILE = __DIR__ . '/../../error_logger.log';
 
@@ -53,6 +58,8 @@ class Logger implements LoggerInterface
 
     /**
      * Legacy method
+     *
+     * @param string|array<array-key, mixed>|Throwable $message
      */
     public static function RecordLog(
         string|array|Throwable $message,
@@ -63,20 +70,60 @@ class Logger implements LoggerInterface
     }
 
     // --- PSR-3 Methods ---
+    /**
+     * @param string|\Stringable|array<array-key, mixed>|Throwable $message
+     * @param array<array-key, mixed> $context
+     */
     public function emergency($message, array $context = []): void { $this->log(LogLevel::EMERGENCY, $message, $context); }
+    /**
+     * @param string|\Stringable|array<array-key, mixed>|Throwable $message
+     * @param array<array-key, mixed> $context
+     */
     public function alert($message, array $context = []): void     { $this->log(LogLevel::ALERT, $message, $context); }
+    /**
+     * @param string|\Stringable|array<array-key, mixed>|Throwable $message
+     * @param array<array-key, mixed> $context
+     */
     public function critical($message, array $context = []): void  { $this->log(LogLevel::CRITICAL, $message, $context); }
+    /**
+     * @param string|\Stringable|array<array-key, mixed>|Throwable $message
+     * @param array<array-key, mixed> $context
+     */
     public function error($message, array $context = []): void     { $this->log(LogLevel::ERROR, $message, $context); }
+    /**
+     * @param string|\Stringable|array<array-key, mixed>|Throwable $message
+     * @param array<array-key, mixed> $context
+     */
     public function warning($message, array $context = []): void   { $this->log(LogLevel::WARNING, $message, $context); }
+    /**
+     * @param string|\Stringable|array<array-key, mixed>|Throwable $message
+     * @param array<array-key, mixed> $context
+     */
     public function notice($message, array $context = []): void    { $this->log(LogLevel::NOTICE, $message, $context); }
+    /**
+     * @param string|\Stringable|array<array-key, mixed>|Throwable $message
+     * @param array<array-key, mixed> $context
+     */
     public function info($message, array $context = []): void      { $this->log(LogLevel::INFO, $message, $context); }
+    /**
+     * @param string|\Stringable|array<array-key, mixed>|Throwable $message
+     * @param array<array-key, mixed> $context
+     */
     public function debug($message, array $context = []): void     { $this->log(LogLevel::DEBUG, $message, $context); }
 
     /**
      * Core logger
+     *
+     * @param mixed $level a PSR-3 level name
+     * @param string|\Stringable|array<array-key, mixed>|Throwable $message
+     * @param array<array-key, mixed> $context
      */
     public function log($level, $message, array $context = []): void
     {
+        if (!is_string($level)) {
+            throw new \Psr\Log\InvalidArgumentException('Log level must be a string');
+        }
+
         // Wrap behavior → message لازم يكون string
         if (is_array($message)) {
             $context['data'] = $message;
@@ -92,20 +139,31 @@ class Logger implements LoggerInterface
             $message = 'Exception log entry';
         }
 
+        $message = (string) $message;
+
         $context = self::redactContext($context);
-        if (is_string($message)) {
-            $message = self::scrubString($message);
-        }
+        $message = self::scrubString($message);
 
         if ($this->monolog) {
             // ✅ Monolog backend
-            $this->monolog->log($level, $message, $context);
+            $monologLevel = match (strtolower($level)) {
+                'debug'     => Level::Debug,
+                'info'      => Level::Info,
+                'notice'    => Level::Notice,
+                'warning'   => Level::Warning,
+                'error'     => Level::Error,
+                'critical'  => Level::Critical,
+                'alert'     => Level::Alert,
+                'emergency' => Level::Emergency,
+                default     => throw new \Psr\Log\InvalidArgumentException('Unknown log level: ' . $level),
+            };
+            $this->monolog->log($monologLevel, $message, $context);
             return;
         }
 
         // ❌ fallback → ملفات
         try {
-            $logFile = $context['logFile'] ?? 'app';
+            $logFile = is_string($context['logFile'] ?? null) ? $context['logFile'] : 'app';
             unset($context['logFile']);
 
             $payload = [
@@ -162,6 +220,8 @@ class Logger implements LoggerInterface
      * Register an extra redaction hook, run after the built-in key masking.
      * It receives the whole context (including the 'exception' entry) and must return the array to log.
      * Pass null to remove it. If the hook throws, the context is replaced by a redaction-failed marker.
+     *
+     * @param null|callable(array<array-key, mixed>): array<array-key, mixed> $redactor
      */
     public static function setRedactor(?callable $redactor): void
     {
@@ -171,13 +231,17 @@ class Logger implements LoggerInterface
     /**
      * Replace the list of sensitive context keys (case-insensitive substring match).
      *
-     * @param string[] $keys
+     * @param list<string> $keys
      */
     public static function setSensitiveKeys(array $keys): void
     {
-        self::$sensitiveKeys = array_map('strtolower', $keys);
+        self::$sensitiveKeys = array_map(static fn(string $k): string => strtolower($k), $keys);
     }
 
+    /**
+     * @param array<array-key, mixed> $context
+     * @return array<array-key, mixed>
+     */
     public static function redactContext(array $context): array
     {
         try {
@@ -185,12 +249,16 @@ class Logger implements LoggerInterface
             if (self::$redactor !== null) {
                 $context = (self::$redactor)($context);
             }
-            return is_array($context) ? $context : ['redaction' => 'invalid redactor result'];
+            return $context;
         } catch (Throwable) {
             return ['redaction' => 'failed'];
         }
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     * @return array<array-key, mixed>
+     */
     private static function maskKeys(array $data, int $depth = 0): array
     {
         if ($depth >= self::MAX_REDACTION_DEPTH) {
@@ -225,6 +293,7 @@ class Logger implements LoggerInterface
     /**
      * Throwables are converted to a scrubbed array so their raw message never reaches the formatter.
      */
+    /** @return array<string, mixed> */
     private static function describeThrowable(Throwable $e, int $depth): array
     {
         $info = [
