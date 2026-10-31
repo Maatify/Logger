@@ -84,6 +84,9 @@ final class LoggerCleanupService
         $entries = array_values(array_diff(scandir($dir) ?: [], ['.', '..']));
         if ($entries === [self::GUARD_FILE]) {
             $guard = $dir . '/' . self::GUARD_FILE;
+            if (is_link($guard)) {
+                return; // symlinks are never deleted, so the folder is not empty
+            }
             $mtime = @filemtime($guard);
             if ($mtime !== false && $mtime < $threshold) {
                 @unlink($guard);

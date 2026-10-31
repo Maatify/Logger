@@ -113,4 +113,27 @@ final class CleanupTest extends TestCase
             self::remove($outside);
         }
     }
+
+    public function testSymlinkNamedGuardFileIsKeptWithItsFolder(): void
+    {
+        $outside = sys_get_temp_dir() . '/maatify-outside-' . bin2hex(random_bytes(4));
+        mkdir($outside);
+        $target = $outside . '/guard-reference.php';
+        file_put_contents($target, '<?php // external');
+        $leaf = $this->dir . '/2025/01/01/01';
+        symlink($target, $leaf . '/index.php');
+        $this->touchOld($target);
+        // age the link itself, not its target, so the age check cannot be what protects it
+        exec('touch -h -t 202501010101 ' . escapeshellarg($leaf . '/index.php'));
+
+        try {
+            (new LoggerCleanupService($this->dir))->deleteOlderThanDays(1);
+            $this->assertTrue(is_link($leaf . '/index.php'), 'the symlink itself was deleted');
+            $this->assertDirectoryExists($leaf);
+            $this->assertFileExists($target);
+        } finally {
+            @unlink($leaf . '/index.php');
+            self::remove($outside);
+        }
+    }
 }
