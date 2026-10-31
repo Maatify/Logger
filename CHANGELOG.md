@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [Unreleased]
 
 ### Changed (behaviour change)
 - File-fallback log entries now record only the **path** of `REQUEST_URI` (no query string, no fragment).

@@ -59,6 +59,22 @@ jobs:
       - name: Composer audit
         run: composer audit:deps
 
+  consumer-harness:
+    name: Consumer Verification Harness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.5'
+          tools: composer:v2
+          coverage: none
+      - name: Harness (two clean consumer installs)
+        run: composer harness
+
   workflow-lint:
     name: Workflow lint
     runs-on: ubuntu-24.04
@@ -72,11 +88,11 @@ jobs:
   gate:
     name: CI gate
     if: always()
-    needs: [verify, workflow-lint]
+    needs: [verify, consumer-harness, workflow-lint]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require every upstream job to succeed
         run: |
-          echo "verify=${{ needs.verify.result }} workflow-lint=${{ needs.workflow-lint.result }}"
-          [ "${{ needs.verify.result }}" = "success" ] && [ "${{ needs.workflow-lint.result }}" = "success" ]
+          echo "verify=${{ needs.verify.result }} consumer-harness=${{ needs.consumer-harness.result }} workflow-lint=${{ needs.workflow-lint.result }}"
+          [ "${{ needs.verify.result }}" = "success" ] && [ "${{ needs.consumer-harness.result }}" = "success" ] && [ "${{ needs.workflow-lint.result }}" = "success" ]
