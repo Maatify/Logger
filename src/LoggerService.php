@@ -31,47 +31,56 @@ final class LoggerService
     /**
      * واجهة عامة (generic)
      */
+    /** @param string|array<array-key, mixed>|Throwable $message */
     public static function log(string $level, string|array|Throwable $message, string $logFile = 'app'): void
     {
         self::getLogger()->log($level, $message, ['logFile' => $logFile]);
     }
 
     // --- Wrappers لكل مستوى PSR-3 ---
+    /** @param string|array<array-key, mixed>|Throwable $message */
     public static function emergency(string|array|Throwable $message, string $logFile = 'app'): void
     {
         self::log(LogLevel::EMERGENCY, $message, $logFile);
     }
 
+    /** @param string|array<array-key, mixed>|Throwable $message */
     public static function alert(string|array|Throwable $message, string $logFile = 'app'): void
     {
         self::log(LogLevel::ALERT, $message, $logFile);
     }
 
+    /** @param string|array<array-key, mixed>|Throwable $message */
     public static function critical(string|array|Throwable $message, string $logFile = 'app'): void
     {
         self::log(LogLevel::CRITICAL, $message, $logFile);
     }
 
+    /** @param string|array<array-key, mixed>|Throwable $message */
     public static function error(string|array|Throwable $message, string $logFile = 'app'): void
     {
         self::log(LogLevel::ERROR, $message, $logFile);
     }
 
+    /** @param string|array<array-key, mixed>|Throwable $message */
     public static function warning(string|array|Throwable $message, string $logFile = 'app'): void
     {
         self::log(LogLevel::WARNING, $message, $logFile);
     }
 
+    /** @param string|array<array-key, mixed>|Throwable $message */
     public static function notice(string|array|Throwable $message, string $logFile = 'app'): void
     {
         self::log(LogLevel::NOTICE, $message, $logFile);
     }
 
+    /** @param string|array<array-key, mixed>|Throwable $message */
     public static function info(string|array|Throwable $message, string $logFile = 'app'): void
     {
         self::log(LogLevel::INFO, $message, $logFile);
     }
 
+    /** @param string|array<array-key, mixed>|Throwable $message */
     public static function debug(string|array|Throwable $message, string $logFile = 'app'): void
     {
         self::log(LogLevel::DEBUG, $message, $logFile);
@@ -83,6 +92,8 @@ final class LoggerService
     /**
      * ميثود مختصر للتعامل مع Exceptions/Throwables
      * يسمح بتمرير context إضافي (مثلاً userId, requestId, إلخ)
+     *
+     * @param array<array-key, mixed> $context
      */
     public static function logException(
         Throwable $e,

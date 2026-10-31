@@ -1,0 +1,38 @@
+name: Release Artifact Verification
+
+# Manual gate for a candidate release SHA and exact target version (CI Workflow Standard §2.5).
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Exact SemVer release target, e.g. 5.2.0 or 1.0.0-rc.1'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-verification-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-release-artifact:
+    name: Release Artifact Verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.5'
+          coverage: none
+      - name: Verify release artifact
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+          php scripts/verify-release-artifact.php "$TARGET" | tee verification.txt
+          { echo '### Release Artifact Verification'; echo '```'; cat verification.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

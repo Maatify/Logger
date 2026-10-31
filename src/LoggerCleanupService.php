@@ -19,11 +19,13 @@ use RecursiveIteratorIterator;
 
 final class LoggerCleanupService
 {
+    private const string GUARD_FILE = 'index.php';
+
     private string $logBasePath;
 
     public function __construct(?string $logBasePath = null)
     {
-        $this->logBasePath = $logBasePath ?? dirname(__DIR__, 2) . '/logs';
+        $this->logBasePath = $logBasePath ?? dirname(__DIR__, 4) . '/logs';
     }
 
     /**
@@ -57,14 +59,42 @@ final class LoggerCleanupService
 
         foreach ($iterator as $file) {
             /** @var \SplFileInfo $file */
+            // Symlinks are never followed or deleted: the target may live outside the log directory.
+            if ($file->isLink()) {
+                continue;
+            }
+            $path = $file->getPathname();
             if ($file->isFile()) {
-                if ($file->getMTime() < $threshold) {
-                    @unlink($file->getRealPath());
+                // The access-guard file is removed only together with its folder, never on age alone
+                if ($file->getFilename() !== self::GUARD_FILE && $file->getMTime() < $threshold) {
+                    @unlink($path);
                 }
             } elseif ($file->isDir()) {
-                // نحذف الفولدر لو فاضي
-                @rmdir($file->getRealPath());
+                $this->removeIfEmpty($path, $threshold);
             }
+        }
+    }
+
+    /**
+     * A folder holding nothing but an old-enough guard file counts as empty; a fresh folder that the logger
+     * has just prepared is left alone.
+     */
+    private function removeIfEmpty(string $dir, int $threshold): void
+    {
+        $entries = array_values(array_diff(scandir($dir) ?: [], ['.', '..']));
+        if ($entries === [self::GUARD_FILE]) {
+            $guard = $dir . '/' . self::GUARD_FILE;
+            if (is_link($guard)) {
+                return; // symlinks are never deleted, so the folder is not empty
+            }
+            $mtime = @filemtime($guard);
+            if ($mtime !== false && $mtime < $threshold) {
+                @unlink($guard);
+                $entries = [];
+            }
+        }
+        if ($entries === []) {
+            @rmdir($dir);
         }
     }
 }

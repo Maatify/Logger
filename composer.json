@@ -1,14 +1,15 @@
 {
   "name": "maatify/logger",
-  "description": "maatify.dev logger, known by our team",
-  "version": "5.1.2",
+  "description": "PSR-3 compatible PHP logger with a Monolog backend, secret redaction and a JSON file fallback",
   "type": "library",
   "keywords": [
-    "PHP",
-    "Logger",
-    "Handler"
+    "php",
+    "maatify",
+    "logger",
+    "psr-3",
+    "monolog"
   ],
-  "homepage": "https://github.com/Maatify/",
+  "homepage": "https://github.com/Maatify/Logger",
   "license": "proprietary",
   "authors": [
     {
@@ -43,14 +44,54 @@
     }
   ],
   "require": {
+    "php": ">=8.4.27 <8.5.0 || >=8.5.12 <8.6.0",
     "ext-json": "*",
-    "psr/log": "^3.0",
-    "monolog/monolog": "^3.9"
+    "monolog/monolog": "^3.9",
+    "psr/log": "^3.0"
+  },
+  "require-dev": {
+    "composer/semver": "^3.4",
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^11.0"
   },
   "autoload": {
     "psr-4": {
       "Maatify\\Logger\\": "src/",
       "Maatify\\Store\\File\\": "src/store/file/"
     }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Maatify\\Logger\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "scripts": {
+    "validate:strict": "composer validate --strict",
+    "check:platform": "composer check-platform-reqs",
+    "check:php-floors": "php scripts/check-php-floors.php",
+    "lint:php": "php scripts/lint-php.php",
+    "lint:whitespace": "php scripts/check-whitespace.php",
+    "lint:workflows": "scripts/lint-workflows.sh",
+    "analyse": "phpstan analyse --no-progress --memory-limit=512M",
+    "audit:deps": "composer audit --no-interaction --abandoned=fail",
+    "test": "phpunit tests",
+    "ci": [
+      "@validate:strict",
+      "@check:platform",
+      "@check:php-floors",
+      "@lint:php",
+      "@lint:whitespace",
+      "@analyse",
+      "@test",
+      "@harness",
+      "@examples",
+      "@audit:deps"
+    ],
+    "harness": "scripts/consumer-harness.sh",
+    "release:verify": "php scripts/verify-release-artifact.php",
+    "examples": "scripts/run-examples.sh"
   }
 }
