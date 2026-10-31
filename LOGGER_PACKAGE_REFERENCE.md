@@ -18,7 +18,7 @@ Namespace `Maatify\Logger`. Anything not listed here is not part of the supporte
 | `static setSensitiveKeys(array $keys): void` | Replaces the list of sensitive context keys (case-insensitive substring match). |
 | `static setRedactor(?callable $redactor): void` | Registers (or with `null` removes) a hook `fn(array $context): array` run after built-in masking. |
 | `static redactContext(array $context): array` | Applies built-in masking and the hook; never throws. |
-| `static sanitizeRequestUri(mixed $uri): string` | Returns only the path of a request URI: no query string, fragment, scheme, userinfo, host or port. `https://user:pw@host/cb?x=1` becomes `/cb`; an absolute URL without a path becomes `/`. Anything that is not an origin-form target (missing or non-string input, `*`, `host:port`) yields `''`. |
+| `static sanitizeRequestUri(mixed $uri): string` | Returns only the path of a request URI: no query string, fragment, scheme, userinfo, host or port. `https://user:pw@host/cb?x=1` becomes `/cb`; an absolute URL without a path becomes `/`. Anything that is not an origin-form target (missing or non-string input, `*`, `host:port`) and any absolute URL with an empty authority (such as `https:///user:pw@host/p`) yields `''`. |
 | `static logFullRequestUri(bool $enabled): void` | Opt-in to keep the full URI in `sanitizeRequestUri()`. Default off. |
 
 ### 1.2 `LoggerService` (final, static facade)
@@ -51,7 +51,7 @@ Files named `index.php` (the logger's access-guard file) are never deleted on ag
 An array message is logged as `'Array log entry'` with the array under `context.data`. A `Throwable` message is logged as `'Exception log entry'` with its details under `context.exception`.
 
 ### 2.2 Backends and files
-- Both backends validate the level first (see §3), then redact, then write.
+- Both backends validate the level first (see §3), then redact, then write. Level validation does not depend on Monolog, so the file fallback works when Monolog is not installed.
 - With Monolog loadable (always, when installed through Composer), entries are written to `logs/YYYY/MM/DD/HH/app_YYYY-MM-DD-HH.log` under the consumer project root (the directory four levels above the package `src/`, i.e. the project root for `vendor/maatify/logger`). The `logFile` argument is not used for routing; it is carried in the context.
 - Only when Monolog is not loadable, the file fallback writes pretty-printed JSON entries to `logs/YYYY/MM/DD/HH/<logFile>_YYYY-MM-DD-HH.log`; a `/` in `logFile` creates sub-folders. Each created log folder (both backends) receives an `index.php` that answers `404`. That file does not prevent a web server from serving a known `.log` path: keep the log directory outside the web root or deny access to it in the server configuration.
 - Fallback I/O failures are written to `error_logger.log` and never thrown.

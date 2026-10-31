@@ -129,4 +129,30 @@ $l->log("info", "fallback entry");
         }
         $this->assertStringNotContainsString('bogus', $content);
     }
+
+    public function testFallbackWorksWhenMonologIsReallyAbsent(): void
+    {
+        $psr = dirname(__DIR__) . '/vendor/psr/log/src/';
+        $script = $this->root . '/nomonolog.php';
+        file_put_contents($script, '<?php
+spl_autoload_register(static function (string $c): void {
+    if (str_starts_with($c, "Psr\\\\Log\\\\")) {
+        require ' . var_export($psr, true) . ' . substr($c, 8) . ".php";
+    }
+});
+require ' . var_export($this->root . '/vendor/maatify/logger/src/Logger.php', true) . ';
+if (class_exists("Monolog\\\\Logger")) { fwrite(STDERR, "monolog unexpectedly loadable\n"); exit(4); }
+$l = new Maatify\\Logger\\Logger();
+$l->log("ERROR", "no monolog entry", ["password" => "SECRET11"]);
+try { $l->log("bogus", "x"); fwrite(STDERR, "unknown level accepted\n"); exit(3); } catch (Psr\\Log\\InvalidArgumentException) {}
+echo "ok";
+');
+        exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' 2>&1', $out, $code);
+        $this->assertSame(0, $code, implode("\n", $out));
+        $files = glob($this->root . '/logs/*/*/*/*/app_*.log') ?: [];
+        $this->assertNotEmpty($files, 'fallback wrote no file');
+        $content = (string) file_get_contents((string) reset($files));
+        $this->assertStringContainsString('no monolog entry', $content);
+        $this->assertStringNotContainsString('SECRET11', $content);
+    }
 }

@@ -24,6 +24,12 @@ class Logger implements LoggerInterface
     private const string REDACTED = '***REDACTED***';
     private const int MAX_REDACTION_DEPTH = 8;
 
+    /** PSR-3 level names accepted by log() (validated independently of Monolog). */
+    private const array LEVELS = [
+        LogLevel::EMERGENCY, LogLevel::ALERT, LogLevel::CRITICAL, LogLevel::ERROR,
+        LogLevel::WARNING, LogLevel::NOTICE, LogLevel::INFO, LogLevel::DEBUG,
+    ];
+
     /**
      * Context keys (case-insensitive substring match) whose values are always masked.
      *
@@ -123,17 +129,9 @@ class Logger implements LoggerInterface
         if (!is_string($level)) {
             throw new \Psr\Log\InvalidArgumentException('Log level must be a string');
         }
-        $monologLevel = match (strtolower($level)) {
-            'debug'     => Level::Debug,
-            'info'      => Level::Info,
-            'notice'    => Level::Notice,
-            'warning'   => Level::Warning,
-            'error'     => Level::Error,
-            'critical'  => Level::Critical,
-            'alert'     => Level::Alert,
-            'emergency' => Level::Emergency,
-            default     => throw new \Psr\Log\InvalidArgumentException('Unknown log level: ' . $level),
-        };
+        if (!in_array(strtolower($level), self::LEVELS, true)) {
+            throw new \Psr\Log\InvalidArgumentException('Unknown log level: ' . $level);
+        }
 
         // Wrap behavior → message لازم يكون string
         if (is_array($message)) {
@@ -157,6 +155,17 @@ class Logger implements LoggerInterface
 
         if ($this->monolog) {
             // ✅ Monolog backend
+            // Monolog\Level is only touched here, so the file fallback works without Monolog
+            $monologLevel = match (strtolower($level)) {
+                LogLevel::DEBUG     => Level::Debug,
+                LogLevel::INFO      => Level::Info,
+                LogLevel::NOTICE    => Level::Notice,
+                LogLevel::WARNING   => Level::Warning,
+                LogLevel::ERROR     => Level::Error,
+                LogLevel::CRITICAL  => Level::Critical,
+                LogLevel::ALERT     => Level::Alert,
+                default             => Level::Emergency,
+            };
             $this->monolog->log($monologLevel, $message, $context);
             return;
         }
@@ -401,6 +410,9 @@ class Logger implements LoggerInterface
         // drop scheme, userinfo, host and port, keep only the path.
         if (preg_match('#^(?:[A-Za-z][A-Za-z0-9+.-]*:)?//#', $path, $m) === 1) {
             $rest = substr($path, strlen($m[0]));
+            if ($rest === '' || $rest[0] === '/') {
+                return ''; // empty authority: not a valid URL, refuse rather than guess what is userinfo
+            }
             $slash = strpos($rest, '/');
             $path = $slash === false ? '/' : substr($rest, $slash);
         }

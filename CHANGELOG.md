@@ -5,7 +5,7 @@
 ## [7.0.0]
 
 ### Changed (behaviour change)
-- `sanitizeRequestUri()` also strips scheme, userinfo, host and port from absolute URLs and `//host/path` references (`https://user:pw@host/cb?x=1` is logged as `/cb`), and yields `''` for anything that is not an origin-form target. Previously `//host/path` was logged as `/host/path`.
+- `sanitizeRequestUri()` also strips scheme, userinfo, host and port from absolute URLs and `//host/path` references (`https://user:pw@host/cb?x=1` is logged as `/cb`), and yields `''` for anything that is not an origin-form target or has an empty authority. Previously `//host/path` was logged as `/host/path`.
 - Both backends now reject an unknown log level with `Psr\Log\InvalidArgumentException`; the file fallback previously accepted any string.
 - Monolog log folders now receive the same `index.php` guard file as the fallback folders.
 - `LoggerCleanupService` no longer deletes `index.php` on age alone and removes a folder holding only an old guard file together with it.

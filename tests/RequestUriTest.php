@@ -73,4 +73,20 @@ final class RequestUriTest extends TestCase
         $this->assertSame('', Logger::sanitizeRequestUri('user:pass123@example.com:443'));
         $this->assertSame('', Logger::sanitizeRequestUri('*'));
     }
+
+    public function testMalformedAbsoluteUrisNeverExposeUserinfo(): void
+    {
+        $inputs = [
+            'https:///user:PASS123@host/path?sig=X',
+            'http:////user:PASS456@host/path',
+            '///user:PASS789@host/path',
+            '////user:PASS790@host/p',
+            'https:\\\\user:PASS791@host/p',
+        ];
+        foreach ($inputs as $input) {
+            $out = Logger::sanitizeRequestUri($input);
+            $this->assertStringNotContainsString('PASS', $out, $input);
+            $this->assertStringNotContainsString('@', $out, $input);
+        }
+    }
 }
