@@ -54,4 +54,37 @@ final class RedactionTest extends TestCase
         $this->assertStringNotContainsString('EG123', json_encode($out));
         $this->assertSame('visible', $out['password']);
     }
+
+    public function testThrowableInContextIsScrubbed(): void
+    {
+        $e = new \RuntimeException('token=SECRET123', 5, new \LogicException('password=SECRET9'));
+        $out = Logger::redactContext(['exception' => $e, 'nested' => ['deep' => $e]]);
+        $json = json_encode($out);
+        $this->assertStringNotContainsString('SECRET', $json);
+        $this->assertStringContainsString('RuntimeException', $json);
+        $this->assertSame('RuntimeException', $out['exception']['class']);
+    }
+
+    public function testBearerTokensAreScrubbed(): void
+    {
+        foreach (['Authorization: Bearer eyJ-SECRET-TOKEN', 'authorization=Basic dXNlcjpTRUNSRVQ=', 'sent header Bearer abc.DEF-SECRET_1 ok'] as $text) {
+            $out = Logger::redactContext(['m' => $text, 'exception' => ['message' => $text]]);
+            $this->assertStringNotContainsString('SECRET', json_encode($out), $text);
+            $this->assertStringNotContainsString('dXNlcjpTRUNSRVQ', json_encode($out), $text);
+        }
+    }
+
+    public function testCircularAndDeepContextDoesNotExhaustMemory(): void
+    {
+        $a = ['k' => 'v'];
+        $a['self'] = &$a;
+        $out = Logger::redactContext(['loop' => $a]);
+        $this->assertSame('v', $out['loop']['k']);
+
+        $deep = ['x' => 'end'];
+        for ($i = 0; $i < 500; $i++) {
+            $deep = ['n' => $deep];
+        }
+        $this->assertIsArray(Logger::redactContext($deep));
+    }
 }

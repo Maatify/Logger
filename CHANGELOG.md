@@ -16,3 +16,9 @@
   - `Logger::setSensitiveKeys([...])` replaces the key list, `Logger::setRedactor(callable)` adds a custom hook
     that receives the full context. A throwing hook never breaks logging and never leaks the original context.
 - Behaviour change: values under the default sensitive keys now appear as `***REDACTED***` in logs.
+- `Throwable` objects placed anywhere in the context are converted to a scrubbed array (class, message, code, file, line, trace, previous) before reaching Monolog.
+- `Authorization: Bearer/Basic <credentials>` values are redacted from free text.
+- Redaction is depth-limited (8 levels), so circular or very deep contexts cannot exhaust memory.
+
+### Removed
+- The `version` field from `composer.json`; releases are identified by VCS tags.

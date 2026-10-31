@@ -21,6 +21,7 @@ class Logger implements LoggerInterface
     private static bool $logFullRequestUri = false;
 
     private const string REDACTED = '***REDACTED***';
+    private const int MAX_REDACTION_DEPTH = 8;
 
     /** Context keys (case-insensitive substring match) whose values are always masked. */
     private static array $sensitiveKeys = [
@@ -190,18 +191,56 @@ class Logger implements LoggerInterface
         }
     }
 
-    private static function maskKeys(array $data): array
+    private static function maskKeys(array $data, int $depth = 0): array
     {
+        if ($depth >= self::MAX_REDACTION_DEPTH) {
+            return ['truncated' => 'max depth reached'];
+        }
+
+        $out = [];
         foreach ($data as $key => $value) {
             if (is_string($key) && self::isSensitiveKey($key)) {
-                $data[$key] = self::REDACTED;
-            } elseif (is_array($value)) {
-                $data[$key] = self::maskKeys($value);
-            } elseif (is_string($value)) {
-                $data[$key] = self::scrubString($value);
+                $out[$key] = self::REDACTED;
+            } else {
+                $out[$key] = self::maskValue($value, $depth + 1);
             }
         }
-        return $data;
+        return $out;
+    }
+
+    private static function maskValue(mixed $value, int $depth): mixed
+    {
+        if (is_array($value)) {
+            return self::maskKeys($value, $depth);
+        }
+        if (is_string($value)) {
+            return self::scrubString($value);
+        }
+        if ($value instanceof Throwable) {
+            return self::describeThrowable($value, $depth);
+        }
+        return $value;
+    }
+
+    /**
+     * Throwables are converted to a scrubbed array so their raw message never reaches the formatter.
+     */
+    private static function describeThrowable(Throwable $e, int $depth): array
+    {
+        $info = [
+            'class'   => $e::class,
+            'message' => self::scrubString($e->getMessage()),
+            'code'    => $e->getCode(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+            'trace'   => self::scrubString($e->getTraceAsString()),
+        ];
+        if ($e->getPrevious() !== null) {
+            $info['previous'] = $depth >= self::MAX_REDACTION_DEPTH
+                ? ['truncated' => 'max depth reached']
+                : self::describeThrowable($e->getPrevious(), $depth + 1);
+        }
+        return $info;
     }
 
     private static function isSensitiveKey(string $key): bool
@@ -224,6 +263,9 @@ class Logger implements LoggerInterface
         if ($names === '') {
             return $text;
         }
+        // Authorization schemes: "Bearer <token>" / "Basic <credentials>"
+        $text = preg_replace('/\b(Bearer|Basic)\s+[A-Za-z0-9._~+\/=-]+/i', '$1 ' . self::REDACTED, $text) ?? $text;
+
         $out = preg_replace(
             '/((?:[\w-]*(?:' . $names . ')[\w-]*)\s*[=:]\s*)("[^"]*"|\'[^\']*\'|[^\s&,;"\')]+)/i',
             '$1' . self::REDACTED,

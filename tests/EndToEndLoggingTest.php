@@ -44,6 +44,10 @@ require ' . var_export($this->root . '/vendor/maatify/logger/src/Logger.php', tr
 $l = new Maatify\Logger\Logger();
 $l->error("callback https://x/cb?sig=SECRET1 failed", ["password" => "SECRET2", "ok" => "visible"]);
 $l->error(new RuntimeException("gateway said token=SECRET3"));
+$l->error("pay failed", ["exception" => new RuntimeException("token=SECRET4")]);
+$l->error("hdr Authorization: Bearer SECRET5");
+$loop = ["a" => 1]; $loop["self"] = &$loop;
+$l->error("loop", ["data" => $loop]);
 ');
         exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' 2>&1', $out, $code);
         $this->assertSame(0, $code, implode("\n", $out));
@@ -53,7 +57,7 @@ $l->error(new RuntimeException("gateway said token=SECRET3"));
         $content = (string) file_get_contents($files[0]);
 
         $this->assertStringContainsString('visible', $content);
-        foreach (['SECRET1', 'SECRET2', 'SECRET3'] as $secret) {
+        foreach (['SECRET1', 'SECRET2', 'SECRET3', 'SECRET4', 'SECRET5'] as $secret) {
             $this->assertStringNotContainsString($secret, $content);
         }
     }
